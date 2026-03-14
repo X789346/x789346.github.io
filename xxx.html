@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>电桩巡检维护系统</title>
+    <title>电桩巡检维护系统 | 工单版</title>
     <style>
         * {
             margin: 0;
@@ -11,110 +11,241 @@
             box-sizing: border-box;
         }
         body {
-            padding: 15px;
-            background: #f2f4f6;
-            font-family: "Microsoft Yahei", sans-serif;
-            color: #333;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft Yahei", sans-serif;
+            color: #1f2937;
+            min-height: 100vh;
+            padding: 12px;
         }
         .container {
-            max-width: 500px;
+            max-width: 520px;
             margin: 0 auto;
         }
-        .card {
+        /* 顶部标题栏 */
+        .header-card {
             background: #fff;
-            border-radius: 14px;
+            border-radius: 16px;
             padding: 20px;
             margin-bottom: 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-        }
-        .title {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            color: #222;
+        }
+        .header-card h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1677ff;
+            margin-bottom: 4px;
+        }
+        .header-card p {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        /* 标签页 */
+        .tab-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            background: #e2e8f0;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .tab-btn.active {
+            background: #1677ff;
+            color: #fff;
+        }
+        /* 表单卡片 */
+        .form-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            display: none;
+        }
+        .form-card.active {
+            display: block;
         }
         .form-item {
-            margin-bottom: 14px;
+            margin-bottom: 18px;
         }
         .form-item label {
             display: block;
             font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: #444;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
         }
-        input, select {
+        input, select, textarea {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #e1e4e8;
-            border-radius: 8px;
+            padding: 13px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
             font-size: 15px;
+            background: #f9fafb;
+            transition: all 0.2s ease;
+        }
+        textarea {
+            min-height: 80px;
+            resize: none;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #1677ff;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.1);
             outline: none;
         }
         input:read-only {
-            background: #f8f9fa;
-            color: #666;
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        /* 按钮组 */
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
         }
         .btn {
-            width: 100%;
-            padding: 13px;
-            border-radius: 8px;
+            flex: 1;
+            min-width: 120px;
+            padding: 13px 16px;
             border: none;
-            color: #fff;
+            border-radius: 10px;
             font-size: 15px;
-            margin-bottom: 10px;
+            font-weight: 600;
+            color: #fff;
             cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        .btn-green { background: #07c160; }
-        .btn-blue { background: #007aff; }
-        .btn-cyan { background: #00a2ff; }
-        .btn-orange { background: #ff9500; }
-        .btn-red { background: #ff3b30; }
-        .btn-gray { background: #8e8e93; }
-
-        #photoPreview {
-            margin-top: 10px;
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn-primary { background: #1677ff; }
+        .btn-success { background: #07c160; }
+        .btn-info { background: #00a2ff; }
+        .btn-warning { background: #ff9500; }
+        .btn-danger { background: #ff3b30; }
+        .btn-secondary { background: #8e8e93; }
+        /* 照片预览 */
+        #userPhotoPreview, #repairPhotoPreview {
+            margin-top: 12px;
+            display: none;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        #userPreviewImg, #repairPreviewImg {
+            width: 100%;
+            display: block;
+        }
+        /* 工单列表 */
+        .order-section {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             display: none;
         }
-        #previewImg {
-            max-width: 100%;
-            border-radius: 8px;
-        }
-
-        /* 记录列表 */
-        .record-list {
-            margin-top: 10px;
-        }
-        .record-item {
-            background: #f9f9fb;
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 10px;
-            font-size: 13px;
-            line-height: 1.5;
-            position: relative;
-        }
-        .record-item .del {
-            position: absolute;
-            right: 10px;
-            top: 10px;
-            color: #ff3b30;
-            font-size: 16px;
-            cursor: pointer;
+        .order-section.active {
+            display: block;
         }
         .section-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin: 10px 0 10px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
+        .order-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .order-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .order-list::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 2px;
+        }
+        .order-item {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            position: relative;
+            transition: all 0.2s ease;
+            border-left: 4px solid #ff9500;
+        }
+        .order-item.status-0 { border-left-color: #ff9500; } /* 待处理 */
+        .order-item.status-1 { border-left-color: #1677ff; } /* 处理中 */
+        .order-item.status-2 { border-left-color: #07c160; } /* 已完成 */
+        
+        .order-item:hover {
+            background: #f3f4f6;
+        }
+        .order-item .info-line {
+            font-size: 13px;
+            color: #4b5563;
+            margin-bottom: 4px;
+        }
+        .order-item .info-line strong {
+            color: #1f2937;
+        }
+        .order-item .status-tag {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #fff;
+        }
+        .status-tag.wait { background: #ff9500; }
+        .status-tag.process { background: #1677ff; }
+        .status-tag.done { background: #07c160; }
+        
+        .order-item .operate-btn {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+        }
+        .operate-btn .mini-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .empty-tip {
+            text-align: center;
+            color: #9ca3af;
+            padding: 20px 0;
+            font-size: 14px;
+        }
         /* 扫码遮罩 */
         .scan-modal {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.92);
             display: none;
             align-items: center;
             justify-content: center;
@@ -123,40 +254,102 @@
         }
         .scan-modal.show { display: flex; }
         #scanVideo {
-            width: 80%;
-            max-width: 360px;
+            width: 85%;
+            max-width: 380px;
             border: 3px solid #07c160;
-            border-radius: 10px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(7, 193, 96, 0.4);
         }
         .close-scan {
             position: absolute;
             top: 30px; right: 30px;
             color: #fff;
-            font-size: 32px;
+            font-size: 36px;
             background: none;
             border: none;
+            cursor: pointer;
         }
         .scan-tips {
             color: #fff;
-            margin-top: 15px;
+            margin-top: 16px;
             font-size: 14px;
+            opacity: 0.8;
         }
     </style>
 </head>
 <body>
-
 <div class="container">
-    <div class="card">
-        <div class="title">电桩巡检维护记录</div>
+    <div class="header-card">
+        <h1>⚡ 电桩巡检维护系统</h1>
+        <p>工单版 | 客户上报 · 工单分配 · 巡检处理</p>
+    </div>
 
+    <!-- 标签页切换 -->
+    <div class="tab-group">
+        <button class="tab-btn active" onclick="switchTab('user-report')">客户上报</button>
+        <button class="tab-btn" onclick="switchTab('work-order')">工单管理</button>
+        <button class="tab-btn" onclick="switchTab('inspect-record')">巡检记录</button>
+    </div>
+
+    <!-- 客户上报表单 -->
+    <div class="form-card active" id="user-report">
         <div class="form-item">
-            <button class="btn btn-green" id="scanBtn">扫码识别充电桩</button>
-            <input type="text" id="pileNo" readonly placeholder="充电桩编号">
+            <button class="btn btn-success" id="userScanBtn">📷 扫码识别充电桩</button>
+            <input type="text" id="userPileNo" readonly placeholder="充电桩编号">
         </div>
 
         <div class="form-item">
             <label>站点名称</label>
-            <input type="text" id="stationName" readonly placeholder="自动匹配">
+            <input type="text" id="userStationName" readonly placeholder="自动匹配">
+        </div>
+
+        <div class="form-item">
+            <label>联系人</label>
+            <input type="text" id="userName" placeholder="请输入您的姓名">
+        </div>
+
+        <div class="form-item">
+            <label>联系电话</label>
+            <input type="text" id="userPhone" placeholder="请输入您的手机号">
+        </div>
+
+        <div class="form-item">
+            <label>问题描述</label>
+            <textarea id="userDesc" placeholder="请详细描述充电桩异常情况"></textarea>
+        </div>
+
+        <div class="form-item">
+            <button class="btn btn-warning" id="userPhotoBtn">🖼️ 上传现场照片</button>
+            <input type="file" id="userPhotoInput" accept="image/*" style="display:none;">
+            <div id="userPhotoPreview">
+                <img id="userPreviewImg">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" id="userSubmitBtn">✔ 提交上报</button>
+        </div>
+    </div>
+
+    <!-- 工单管理 -->
+    <div class="order-section" id="work-order">
+        <div class="section-title">
+            <span>📋 待处理工单</span>
+            <span id="orderCount" style="font-size:14px; color:#6b7280;">0 条</span>
+        </div>
+        <div class="order-list" id="orderList"></div>
+    </div>
+
+    <!-- 巡检记录（原有功能） -->
+    <div class="form-card" id="inspect-record">
+        <div class="form-item">
+            <button class="btn btn-success" id="inspectScanBtn">📷 扫码识别充电桩</button>
+            <input type="text" id="inspectPileNo" readonly placeholder="充电桩编号">
+        </div>
+
+        <div class="form-item">
+            <label>站点名称</label>
+            <input type="text" id="inspectStationName" readonly placeholder="自动匹配">
         </div>
 
         <div class="form-item">
@@ -166,7 +359,7 @@
 
         <div class="form-item">
             <label>设备状态</label>
-            <select id="status">
+            <select id="inspectStatus">
                 <option value="">请选择</option>
                 <option value="正常">正常</option>
                 <option value="异常">异常</option>
@@ -174,41 +367,49 @@
         </div>
 
         <div class="form-item">
-            <label>问题描述</label>
-            <input type="text" id="desc" placeholder="无则填无">
+            <label>处理结果</label>
+            <textarea id="inspectDesc" placeholder="请填写处理结果"></textarea>
         </div>
 
         <div class="form-item">
-            <button class="btn btn-orange" id="photoBtn">现场拍照/相册</button>
-            <input type="file" id="photoInput" accept="image/*" style="display:none;">
-            <div id="photoPreview">
-                <img id="previewImg">
+            <button class="btn btn-warning" id="repairPhotoBtn">🖼️ 上传处理后照片</button>
+            <input type="file" id="repairPhotoInput" accept="image/*" style="display:none;">
+            <div id="repairPhotoPreview">
+                <img id="repairPreviewImg">
             </div>
         </div>
 
-        <button class="btn btn-blue" id="saveBtn">✔ 保存当前记录</button>
-        <button class="btn btn-cyan" id="exportCsvBtn">导出 CSV 表格</button>
-        <button class="btn btn-cyan" id="exportExcelBtn">导出 Excel 表格</button>
-        <button class="btn btn-gray" id="exportPdfBtn">导出 PDF（带照片汇总）</button>
-        <button class="btn btn-red" id="clearAllBtn">🗑 一键清空所有记录</button>
+        <div class="btn-group">
+            <button class="btn btn-primary" id="saveInspectBtn">✔ 保存记录</button>
+            <button class="btn btn-info" id="exportCsvBtn">导出 CSV</button>
+            <button class="btn btn-info" id="exportExcelBtn">导出 Excel</button>
+            <button class="btn btn-secondary" id="exportPdfBtn">导出 PDF（带图）</button>
+            <button class="btn btn-danger" id="clearAllBtn">🗑 清空全部</button>
+        </div>
     </div>
 
-    <div class="section-title">已保存巡检记录</div>
-    <div class="record-list" id="recordList"></div>
+    <!-- 已保存巡检记录列表 -->
+    <div class="order-section" id="record-section" style="display:none;">
+        <div class="section-title">
+            <span>📋 已保存巡检记录</span>
+            <span id="recordCount" style="font-size:14px; color:#6b7280;">0 条</span>
+        </div>
+        <div class="order-list" id="recordList"></div>
+    </div>
 </div>
 
 <div class="scan-modal" id="scanModal">
     <video id="scanVideo" autoplay playsinline muted></video>
     <button class="close-scan" id="closeScanBtn">×</button>
-    <div class="scan-tips">对准二维码，自动识别</div>
+    <div class="scan-tips">对准二维码，自动识别并关闭</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/parallax/jsPDF@master/libs/simhei-normal.js"></script>
 
 <script>
-// 充电桩数据
 const pileData = {
 "HK6050202312140144":{"station":"百弘帝景"},
 "WH110W2405A0183":{"station":"(星城新能源)春园商业步行街银街"},
@@ -625,8 +826,117 @@ const pileData = {
 "HK6050202306090005":{"station":"(嘟家(民营市场))立马电动车(涟钢旗舰店)"},
 "HK6050202306090001":{"station":"(嘟家(民营市场))七星豹电动车城"}
 };
+// 标签页切换
+function switchTab(tabId) {
+    // 隐藏所有标签页
+    document.querySelectorAll('.form-card, .order-section').forEach(el => {
+        el.classList.remove('active');
+        el.style.display = 'none';
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // 激活选中标签
+    event.target.classList.add('active');
+    
+    // 显示对应内容
+    const targetEl = document.getElementById(tabId);
+    if (targetEl) {
+        targetEl.classList.add('active');
+        targetEl.style.display = 'block';
+    }
+    
+    // 巡检记录标签特殊处理
+    if (tabId === 'inspect-record') {
+        document.getElementById('record-section').style.display = 'block';
+        renderRecordList();
+    }
+    
+    // 工单管理标签刷新列表
+    if (tabId === 'work-order') {
+        renderOrderList();
+    }
+}
 
-// 本地存储
+// ===================== 工单相关存储和渲染 =====================
+// 获取工单列表
+function getOrders() {
+    try {
+        return JSON.parse(localStorage.getItem('charge_orders') || '[]');
+    } catch (e) {
+        return [];
+    }
+}
+
+// 保存工单
+function saveOrder(order) {
+    const orders = getOrders();
+    orders.push({
+        id: Date.now(), // 唯一ID
+        ...order,
+        status: 0, // 0-待处理 1-处理中 2-已完成
+        assignTo: '', // 分配给哪位巡检员
+        createTime: new Date().toLocaleString('zh-CN')
+    });
+    localStorage.setItem('charge_orders', JSON.stringify(orders));
+    renderOrderList();
+}
+
+// 更新工单状态
+function updateOrderStatus(id, status, assignTo = '') {
+    const orders = getOrders();
+    const index = orders.findIndex(o => o.id === id);
+    if (index > -1) {
+        orders[index].status = status;
+        if (assignTo) orders[index].assignTo = assignTo;
+        localStorage.setItem('charge_orders', JSON.stringify(orders));
+        renderOrderList();
+    }
+}
+
+// 删除工单
+function deleteOrder(id) {
+    if (!confirm('确定删除该工单？')) return;
+    const orders = getOrders();
+    const newOrders = orders.filter(o => o.id !== id);
+    localStorage.setItem('charge_orders', JSON.stringify(newOrders));
+    renderOrderList();
+}
+
+// 渲染工单列表
+function renderOrderList() {
+    const orders = getOrders();
+    const el = document.getElementById('orderList');
+    const countEl = document.getElementById('orderCount');
+    countEl.textContent = `${orders.length} 条`;
+    
+    if (orders.length === 0) {
+        el.innerHTML = '<div class="empty-tip">暂无工单</div>';
+        return;
+    }
+    
+    const statusText = ['待处理', '处理中', '已完成'];
+    const statusClass = ['wait', 'process', 'done'];
+    
+    el.innerHTML = orders.map(order => `
+        <div class="order-item status-${order.status}">
+            <div class="status-tag ${statusClass[order.status]}">${statusText[order.status]}</div>
+            <div class="info-line"><strong>编号：</strong>${order.pileNo}</div>
+            <div class="info-line"><strong>站点：</strong>${order.station}</div>
+            <div class="info-line"><strong>上报人：</strong>${order.userName} | <strong>电话：</strong>${order.userPhone}</div>
+            <div class="info-line"><strong>问题：</strong>${order.desc}</div>
+            <div class="info-line"><strong>分配给：</strong>${order.assignTo || '未分配'}</div>
+            <div class="info-line" style="font-size:12px; color:#9ca3af;">上报时间：${order.createTime}</div>
+            
+            <div class="operate-btn">
+                ${order.status === 0 ? `<button class="mini-btn btn-primary" onclick="updateOrderStatus(${order.id}, 1, prompt('请输入分配的巡检人员姓名：'))">分配处理</button>` : ''}
+                ${order.status === 1 ? `<button class="mini-btn btn-success" onclick="updateOrderStatus(${order.id}, 2)">标记完成</button>` : ''}
+                <button class="mini-btn btn-danger" onclick="deleteOrder(${order.id})">删除</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ===================== 巡检记录相关 =====================
 function getRecords() {
     try {
         return JSON.parse(localStorage.getItem('charge_records') || '[]');
@@ -634,31 +944,35 @@ function getRecords() {
         return [];
     }
 }
+
 function setRecords(records) {
     localStorage.setItem('charge_records', JSON.stringify(records));
-    renderList();
+    renderRecordList();
 }
 
-// 渲染列表
-function renderList() {
+function renderRecordList() {
     const list = getRecords();
     const el = document.getElementById('recordList');
+    const countEl = document.getElementById('recordCount');
+    countEl.textContent = `${list.length} 条`;
+    
     if (list.length === 0) {
-        el.innerHTML = '<div style="text-align:center; color:#999; padding:10px;">暂无记录</div>';
+        el.innerHTML = '<div class="empty-tip">暂无巡检记录</div>';
         return;
     }
+    
     el.innerHTML = list.map((r, i) => `
-        <div class="record-item">
-            <div>${r.pileNo} | ${r.station}</div>
-            <div>巡检：${r.inspector} | ${r.status}</div>
-            <div>问题：${r.desc}</div>
-            <div>${r.time}</div>
-            <div class="del" onclick="delRecord(${i})">×</div>
+        <div class="order-item">
+            <div class="info-line"><strong>编号：</strong>${r.pileNo}</div>
+            <div class="info-line"><strong>站点：</strong>${r.station}</div>
+            <div class="info-line"><strong>巡检：</strong>${r.inspector} | <strong>状态：</strong>${r.status}</div>
+            <div class="info-line"><strong>结果：</strong>${r.desc}</div>
+            <div class="info-line" style="font-size:12px; color:#9ca3af;">${r.time}</div>
+            <button class="mini-btn btn-danger" style="position:absolute;right:12px;top:12px;" onclick="delRecord(${i})">×</button>
         </div>
     `).join('');
 }
 
-// 删除单条
 function delRecord(index) {
     if (!confirm('确定删除该条记录？')) return;
     const arr = getRecords();
@@ -666,46 +980,33 @@ function delRecord(index) {
     setRecords(arr);
 }
 
-// 清空全部
-document.getElementById('clearAllBtn').onclick = () => {
-    if (!confirm('确定清空所有记录？不可恢复！')) return;
-    setRecords([]);
-    alert('已清空');
-};
-
-// 拍照
-document.getElementById('photoBtn').onclick = () => {
-    document.getElementById('photoInput').click();
-};
-document.getElementById('photoInput').onchange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        const img = document.getElementById('previewImg');
-        img.src = ev.target.result;
-        document.getElementById('photoPreview').style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-};
-
-// 扫码
+// ===================== 通用扫码功能 =====================
 let mediaStream = null;
-document.getElementById('scanBtn').onclick = async () => {
+let scanCallback = null;
+
+function openScan(callback) {
+    scanCallback = callback;
     document.getElementById('scanModal').classList.add('show');
+    
     try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
+        navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment' }
+        }).then(stream => {
+            mediaStream = stream;
+            const video = document.getElementById('scanVideo');
+            video.srcObject = stream;
+            video.play();
+            startScanProcess();
+        }).catch(e => {
+            alert('请开启相机权限，或在手机浏览器中使用');
+            closeScan();
         });
-        const video = document.getElementById('scanVideo');
-        video.srcObject = mediaStream;
-        await video.play();
-        startScan();
     } catch (e) {
-        alert('请开启相机权限');
+        alert('相机权限获取失败');
         closeScan();
     }
-};
+}
+
 function closeScan() {
     document.getElementById('scanModal').classList.remove('show');
     if (mediaStream) {
@@ -713,110 +1014,201 @@ function closeScan() {
         mediaStream = null;
     }
 }
-document.getElementById('closeScanBtn').onclick = closeScan;
 
 function extractPileNo(s) {
     const m = s.match(/(hk|wh)[0-9a-zA-Z]+/i);
     return m ? m[0].toUpperCase() : '';
 }
 
-function startScan() {
+function startScanProcess() {
     const video = document.getElementById('scanVideo');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
+    
     const timer = setInterval(() => {
         if (!mediaStream) return clearInterval(timer);
+        
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             ctx.drawImage(video, 0, 0);
+            
             const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
             if (code) {
                 clearInterval(timer);
                 const pn = extractPileNo(code.data);
-                if (pn) {
-                    document.getElementById('pileNo').value = pn;
-                    document.getElementById('stationName').value = pileData[pn]?.station || '未匹配';
-                    alert('识别成功：' + pn);
-                } else {
-                    alert('未识别有效编号');
-                }
+                
+                if (scanCallback) scanCallback(pn);
                 closeScan();
             }
         }
     }, 300);
 }
 
-// 保存
-document.getElementById('saveBtn').onclick = () => {
-    const pileNo = document.getElementById('pileNo').value.trim();
-    const station = document.getElementById('stationName').value.trim();
+// ===================== 事件绑定 =====================
+// 扫码按钮绑定
+document.getElementById('userScanBtn').onclick = () => {
+    openScan(pileNo => {
+        if (pileNo) {
+            document.getElementById('userPileNo').value = pileNo;
+            document.getElementById('userStationName').value = pileData[pileNo]?.station || '未匹配站点';
+            alert(`✅ 识别成功：${pileNo}\n站点：${pileData[pileNo]?.station || '未匹配站点'}`);
+        } else {
+            alert('❌ 未识别到有效充电桩编号');
+        }
+    });
+};
+
+document.getElementById('inspectScanBtn').onclick = () => {
+    openScan(pileNo => {
+        if (pileNo) {
+            document.getElementById('inspectPileNo').value = pileNo;
+            document.getElementById('inspectStationName').value = pileData[pileNo]?.station || '未匹配站点';
+            alert(`✅ 识别成功：${pileNo}\n站点：${pileData[pileNo]?.station || '未匹配站点'}`);
+        } else {
+            alert('❌ 未识别到有效充电桩编号');
+        }
+    });
+};
+
+document.getElementById('closeScanBtn').onclick = closeScan;
+
+// 照片上传
+document.getElementById('userPhotoBtn').onclick = () => {
+    document.getElementById('userPhotoInput').click();
+};
+document.getElementById('userPhotoInput').onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        document.getElementById('userPreviewImg').src = ev.target.result;
+        document.getElementById('userPhotoPreview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+};
+
+document.getElementById('repairPhotoBtn').onclick = () => {
+    document.getElementById('repairPhotoInput').click();
+};
+document.getElementById('repairPhotoInput').onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        document.getElementById('repairPreviewImg').src = ev.target.result;
+        document.getElementById('repairPhotoPreview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+};
+
+// 客户提交上报
+document.getElementById('userSubmitBtn').onclick = () => {
+    const pileNo = document.getElementById('userPileNo').value.trim();
+    const station = document.getElementById('userStationName').value.trim();
+    const userName = document.getElementById('userName').value.trim();
+    const userPhone = document.getElementById('userPhone').value.trim();
+    const desc = document.getElementById('userDesc').value.trim();
+    const photo = document.getElementById('userPreviewImg').src || '';
+
+    if (!pileNo) return alert('⚠️ 请先扫码获取充电桩编号');
+    if (!userName) return alert('⚠️ 请填写联系人姓名');
+    if (!userPhone) return alert('⚠️ 请填写联系电话');
+    if (!desc) return alert('⚠️ 请描述异常情况');
+
+    saveOrder({ pileNo, station, userName, userPhone, desc, photo });
+    alert('✅ 上报提交成功！我们会尽快处理');
+    
+    // 清空表单
+    document.getElementById('userPileNo').value = '';
+    document.getElementById('userStationName').value = '';
+    document.getElementById('userName').value = '';
+    document.getElementById('userPhone').value = '';
+    document.getElementById('userDesc').value = '';
+    document.getElementById('userPhotoInput').value = '';
+    document.getElementById('userPhotoPreview').style.display = 'none';
+    document.getElementById('userPreviewImg').src = '';
+};
+
+// 保存巡检记录
+document.getElementById('saveInspectBtn').onclick = () => {
+    const pileNo = document.getElementById('inspectPileNo').value.trim();
+    const station = document.getElementById('inspectStationName').value.trim();
     const inspector = document.getElementById('inspectorName').value.trim();
-    const status = document.getElementById('status').value.trim();
-    const desc = document.getElementById('desc').value.trim() || '无';
-    const photo = document.getElementById('previewImg').src || '';
+    const status = document.getElementById('inspectStatus').value.trim();
+    const desc = document.getElementById('inspectDesc').value.trim() || '无';
+    const photo = document.getElementById('repairPreviewImg').src || '';
     const time = new Date().toLocaleString('zh-CN');
 
-    if (!inspector) return alert('请填巡检人');
-    if (!pileNo) return alert('请先扫码');
-    if (!status) return alert('请选状态');
+    if (!inspector) return alert('⚠️ 请填写巡检人员姓名');
+    if (!pileNo) return alert('⚠️ 请先扫码获取充电桩编号');
+    if (!status) return alert('⚠️ 请选择设备状态');
 
     const records = getRecords();
     records.push({ pileNo, station, inspector, status, desc, photo, time });
     setRecords(records);
 
-    alert('保存成功');
-    document.getElementById('status').value = '';
-    document.getElementById('desc').value = '';
-    document.getElementById('photoInput').value = '';
-    document.getElementById('photoPreview').style.display = 'none';
-    document.getElementById('previewImg').src = '';
+    alert('✅ 保存成功！');
+    document.getElementById('inspectStatus').value = '';
+    document.getElementById('inspectDesc').value = '';
+    document.getElementById('repairPhotoInput').value = '';
+    document.getElementById('repairPhotoPreview').style.display = 'none';
+    document.getElementById('repairPreviewImg').src = '';
+};
+
+// 清空所有巡检记录
+document.getElementById('clearAllBtn').onclick = () => {
+    if (!confirm('确定清空所有记录？此操作不可恢复！')) return;
+    setRecords([]);
+    alert('✅ 已清空所有巡检记录');
 };
 
 // 导出 CSV
 document.getElementById('exportCsvBtn').onclick = () => {
     const list = getRecords();
-    if (list.length === 0) return alert('无记录');
-    const head = '编号,站点,巡检人,状态,问题,照片,时间\n';
-    const rows = list.map(r => `${r.pileNo},${r.station},${r.inspector},${r.status},${r.desc},${r.photo?'有':'无'},${r.time}`).join('\n');
+    if (list.length === 0) return alert('⚠️ 暂无记录可导出');
+    const head = '充电桩编号,站点名称,巡检人员,设备状态,处理结果,照片,记录时间\n';
+    const rows = list.map(r => `${r.pileNo},${r.station},${r.inspector},${r.status},${r.desc},${r.photo?'已上传':'无'},${r.time}`).join('\n');
     const blob = new Blob(['\ufeff' + head + rows], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = '充电桩巡检记录.csv';
+    a.download = `充电桩巡检记录_${new Date().toLocaleDateString()}.csv`;
     a.click();
-    alert('CSV 导出完成');
+    alert('✅ CSV 导出完成！');
 };
 
 // 导出 Excel
 document.getElementById('exportExcelBtn').onclick = () => {
     const list = getRecords();
-    if (list.length === 0) return alert('无记录');
+    if (list.length === 0) return alert('⚠️ 暂无记录可导出');
     const data = list.map(r => ({
         '充电桩编号': r.pileNo,
         '站点名称': r.station,
         '巡检人员': r.inspector,
         '设备状态': r.status,
-        '问题描述': r.desc,
-        '照片': r.photo ? '已上传' : '无',
+        '处理结果': r.desc,
+        '现场照片': r.photo ? '已上传' : '无',
         '记录时间': r.time
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '巡检记录');
-    XLSX.writeFile(wb, '充电桩巡检记录.xlsx');
-    alert('Excel 导出完成');
+    XLSX.writeFile(wb, `充电桩巡检记录_${new Date().toLocaleDateString()}.xlsx`);
+    alert('✅ Excel 导出完成！');
 };
 
-// 导出 PDF（汇总版：编号+站点+状态+照片）
+// 导出 PDF
 document.getElementById('exportPdfBtn').onclick = async () => {
     const list = getRecords();
-    if (list.length === 0) return alert('无记录');
+    if (list.length === 0) return alert('⚠️ 暂无记录可导出');
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
-    let y = 15;
+    pdf.addFont('simhei-normal.js', 'simhei', 'normal');
+    pdf.setFont('simhei');
 
+    let y = 15;
     pdf.setFontSize(18);
-    pdf.text('充电桩巡检汇总表', 105, y, { align: 'center' });
+    pdf.text('电桩巡检汇总记录表', 105, y, { align: 'center' });
     y += 15;
 
     for (const r of list) {
@@ -825,7 +1217,7 @@ document.getElementById('exportPdfBtn').onclick = async () => {
         pdf.text(`站点：${r.station}`, 10, y + 7);
         pdf.text(`巡检：${r.inspector}`, 10, y + 14);
         pdf.text(`状态：${r.status}`, 10, y + 21);
-        pdf.text(`问题：${r.desc}`, 10, y + 28);
+        pdf.text(`结果：${r.desc}`, 10, y + 28);
         pdf.text(`时间：${r.time}`, 10, y + 35);
         y += 45;
 
@@ -833,7 +1225,9 @@ document.getElementById('exportPdfBtn').onclick = async () => {
             try {
                 pdf.addImage(r.photo, 'JPEG', 10, y, 130, 90);
                 y += 100;
-            } catch (e) {}
+            } catch (e) {
+                console.error('图片添加失败', e);
+            }
         }
 
         if (y > 270) {
@@ -841,12 +1235,13 @@ document.getElementById('exportPdfBtn').onclick = async () => {
             y = 15;
         }
     }
-    pdf.save('充电桩巡检_汇总带图.pdf');
-    alert('PDF 导出完成！含站点、编号、照片');
+    pdf.save(`电桩巡检_汇总带图_${new Date().toLocaleDateString()}.pdf`);
+    alert('✅ PDF 导出完成！中文正常显示，含照片');
 };
 
 // 初始化
-renderList();
+renderOrderList();
+renderRecordList();
 </script>
 </body>
 </html>
