@@ -142,7 +142,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-// ===================== 你的全部电桩数据（已去掉经销商）=====================
 const pileData = {
 "HK6050202312140144":{"station":"百弘帝景"},
 "WH110W2405A0183":{"station":"(星城新能源)春园商业步行街银街"},
@@ -247,7 +246,6 @@ const pileData = {
 "WH110W2405A0185":{"station":"(星城新能源)春园商业步行街银街"}
 };
 
-// ===================== 本地存储（核心：汇总保存）=====================
 function getRecords() {
     try {
         const data = localStorage.getItem('charge_records');
@@ -267,7 +265,6 @@ function clearAllRecords() {
     localStorage.removeItem('charge_records');
 }
 
-// ===================== 拍照功能 =====================
 document.getElementById('photoBtn').onclick = function(){
     document.getElementById('photoInput').click();
 };
@@ -283,7 +280,6 @@ document.getElementById('photoInput').onchange = function(e){
     }
 };
 
-// ===================== 扫码功能 =====================
 let mediaStream = null;
 document.getElementById('scanBtn').onclick = async function(){
     document.getElementById('scanModal').classList.add('show');
@@ -317,14 +313,19 @@ function startScan(){
             ctx.drawImage(video,0,0);
             const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
             if(code){
-                const no = code.data.trim();
-                if(pileData[no]){
-                    document.getElementById('pileNo').value = no;
-                    document.getElementById('stationName').value = pileData[no].station;
-                    alert('识别成功：'+no);
+                let rawData = code.data.trim();
+                // 自动提取网址中的 WH/HK 开头编号
+                let match = rawData.match(/(WH|HK)\w+/);
+                let pileNo = match ? match[0] : rawData;
+                
+                if(pileData[pileNo]){
+                    document.getElementById('pileNo').value = pileNo;
+                    document.getElementById('stationName').value = pileData[pileNo].station;
+                    alert('识别成功：'+pileNo);
                 } else {
-                    document.getElementById('pileNo').value = no;
-                    alert('未找到此桩：'+no);
+                    document.getElementById('pileNo').value = pileNo;
+                    document.getElementById('stationName').value = '未匹配到站点';
+                    alert('未找到此桩：'+pileNo);
                 }
                 closeScan();
                 return;
@@ -335,7 +336,6 @@ function startScan(){
     loop();
 }
 
-// ===================== 保存到本地（汇总）=====================
 document.getElementById('saveBtn').onclick = function(){
     const pileNo = document.getElementById('pileNo').value.trim();
     const station = document.getElementById('stationName').value.trim();
@@ -357,7 +357,6 @@ document.getElementById('saveBtn').onclick = function(){
     document.getElementById('photoPreview').style.display = 'none';
 };
 
-// ===================== 导出一个完整表格 =====================
 document.getElementById('exportBtn').onclick = function(){
     const records = getRecords();
     if(records.length === 0){
@@ -379,7 +378,6 @@ document.getElementById('exportBtn').onclick = function(){
     alert('✅ 导出成功！只有一个文件，用WPS打开');
 };
 
-// 清空
 document.getElementById('clearBtn').onclick = function(){
     if(confirm('确定清空所有记录？')){
         clearAllRecords();
