@@ -1,9 +1,8 @@
 ﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <!-- 1. 强制声明UTF-8编码（核心修复） -->
     <meta charset="UTF-8">
-    <!-- 2. 修复移动端适配，避免缩放问题 -->
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>充电桩巡检系统</title>
     <style>
@@ -48,7 +47,6 @@
             box-sizing: border-box;
             font-family: inherit;
         }
-        /* 修复只读输入框样式，避免文字不清晰 */
         input.readonly {
             background-color: #f8f9fa;
             color: #333;
@@ -70,16 +68,109 @@
         button:hover {
             background: #0056b3;
         }
-        /* 扫码按钮样式区分 */
         #scanBtn {
             background: #28a745;
         }
         #scanBtn:hover {
             background: #218838;
         }
+
+        /* ========== 新增：摄像头预览弹窗样式 ========== */
+        .scan-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .scan-modal.show {
+            display: flex;
+        }
+        .scan-header {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .scan-container {
+            position: relative;
+            width: 90%;
+            max-width: 400px;
+            height: 0;
+            padding-bottom: 100%; /* 正方形预览框 */
+            margin: 0 auto;
+        }
+        /* 扫码框（带定位辅助线） */
+        .scan-box {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #00ff00;
+            box-sizing: border-box;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        /* 摄像头视频流 */
+        #scanVideo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* 镜像显示，符合拍摄习惯 */
+        }
+        /* 扫码辅助线 */
+        .scan-line {
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: #00ff00;
+            animation: scanMove 2s infinite linear;
+        }
+        @keyframes scanMove {
+            0% { top: 10%; }
+            50% { top: 90%; }
+            100% { top: 10%; }
+        }
+        /* 关闭按钮 */
+        .close-scan {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            border: none;
+            padding: 0;
+        }
+        .close-scan:hover {
+            background: rgba(255,255,255,0.5);
+        }
+        .scan-tips {
+            color: white;
+            font-size: 14px;
+            margin-top: 15px;
+            text-align: center;
+        }
     </style>
-    <!-- 3. 强制设置页面编码（双重保障） -->
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 </head>
 <body>
     <div class="container">
@@ -111,19 +202,28 @@
         <button id="saveBtn">保存记录到WPS表格</button>
     </div>
 
-    <!-- 扫码核心库 -->
+    <!-- ========== 新增：摄像头预览弹窗 ========== -->
+    <div class="scan-modal" id="scanModal">
+        <div class="scan-header">请对准充电桩二维码</div>
+        <div class="scan-container">
+            <div class="scan-box">
+                <video id="scanVideo" autoplay playsinline></video>
+                <div class="scan-line"></div>
+                <button class="close-scan" id="closeScanBtn">×</button>
+            </div>
+        </div>
+        <div class="scan-tips">识别成功后自动关闭 | 点击×手动关闭</div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script>
-        // ==================== 1. 配置区域 - 请在这里填写你的信息 ====================
         const WPS_CONFIG = {
             APP_ID: 'AK20260314ZQGPMW',       
             APP_KEY: '63c12be7d60b46d2031d054e5025da23',     
-            // 注意：TABLE_ID不是完整链接，需要从表格URL提取（示例：123456789abcdef）
             TABLE_ID: 'cp4x4WC5bsW6',   
             SHEET_NAME: 'Sheet1'         
         };
 
-        // 充电桩信息库
         const pileData = {
             "HK6050202312140144": {"station": "百弘帝景", "dealer": "五号快充"},
             "WH110W2405A0183": {"station": "(星城新能源)春园商业步行街银街", "dealer": "星城新能源"},
@@ -226,12 +326,17 @@
             "WH210W2405A0358": {"station": "(星城新能源)家和新领域", "dealer": "星城新能源"},
             "WH210W2405A0357": {"station": "(五号动力)涟源市石马山电信", "dealer": "五号动力(五号动力)"}
         };
-        // ==================== 配置区域结束 ====================
 
-        // 扫码功能（优化兼容性）
+        // 全局变量：摄像头流、扫描定时器
+        let mediaStream = null;
+        let scanAnimation = null;
+
+        // ========== 新增：打开扫码弹窗 ==========
         document.getElementById('scanBtn').addEventListener('click', async () => {
+            // 显示扫码弹窗
+            document.getElementById('scanModal').classList.add('show');
+            
             try {
-                // 兼容不同浏览器的媒体设备API
                 const navigatorMedia = navigator.mediaDevices || ((navigator.mozGetUserMedia || navigator.webkitGetUserMedia) ? {
                     getUserMedia: function(c) {
                         return new Promise(function(y, n) {
@@ -242,71 +347,115 @@
 
                 if (!navigatorMedia) {
                     alert('你的浏览器不支持摄像头功能，请使用Chrome/Edge/微信浏览器！');
+                    closeScanModal();
                     return;
                 }
 
-                const stream = await navigatorMedia.getUserMedia({ 
+                // 获取摄像头权限并显示预览
+                mediaStream = await navigatorMedia.getUserMedia({ 
                     video: { 
-                        facingMode: 'environment',
+                        facingMode: 'environment', // 优先后置摄像头
                         width: { ideal: 1280 },
                         height: { ideal: 720 }
                     } 
                 });
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                video.play();
-
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+                const videoElement = document.getElementById('scanVideo');
+                videoElement.srcObject = mediaStream;
                 
-                const scan = () => {
-                    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        const code = jsQR(imageData.data, canvas.width, canvas.height);
-                        
-                        if (code) {
-                            let pileNo = code.data.trim();
-                            // 兼容不同格式的二维码内容
-                            if (pileNo.includes('no=')) {
-                                pileNo = pileNo.split('no=')[1].split('&')[0];
-                            }
-                            document.getElementById('pileNo').value = pileNo;
-                            
-                            if (pileData[pileNo]) {
-                                document.getElementById('stationName').value = pileData[pileNo].station;
-                                document.getElementById('dealer').value = pileData[pileNo].dealer;
-                            } else {
-                                alert('未找到该充电桩信息！');
-                            }
-                            // 停止摄像头流
-                            stream.getTracks().forEach(track => track.stop());
-                        } else {
-                            requestAnimationFrame(scan);
-                        }
-                    } else {
-                        requestAnimationFrame(scan);
-                    }
-                };
-                requestAnimationFrame(scan);
+                // 开始扫码识别
+                startScan();
+
             } catch (err) {
                 console.error('扫码错误:', err);
                 alert('请允许摄像头权限，或检查设备是否有摄像头！');
+                closeScanModal();
             }
         });
 
-        // 保存记录到WPS表格（优化错误处理）
+        // ========== 新增：关闭扫码弹窗 ==========
+        document.getElementById('closeScanBtn').addEventListener('click', closeScanModal);
+
+        // 关闭扫码弹窗并停止摄像头
+        function closeScanModal() {
+            // 隐藏弹窗
+            document.getElementById('scanModal').classList.remove('show');
+            
+            // 停止摄像头流
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            
+            // 停止扫码动画
+            if (scanAnimation) {
+                cancelAnimationFrame(scanAnimation);
+                scanAnimation = null;
+            }
+        }
+
+        // ========== 核心：扫码识别逻辑（带预览） ==========
+        function startScan() {
+            const videoElement = document.getElementById('scanVideo');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const scan = () => {
+                if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA && mediaStream) {
+                    canvas.width = videoElement.videoWidth;
+                    canvas.height = videoElement.videoHeight;
+                    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, canvas.width, canvas.height);
+                    
+                    if (code) {
+                        let scanResult = code.data.trim();
+                        let pileNo = '';
+
+                        // 提取充电桩编号
+                        const pileRegex = /(WH|HK)\w+/g;
+                        const matchResult = scanResult.match(pileRegex);
+                        if (matchResult && matchResult.length > 0) {
+                            pileNo = matchResult[0];
+                        } else if (scanResult.startsWith('WH') || scanResult.startsWith('HK')) {
+                            pileNo = scanResult;
+                        }
+
+                        // 填充数据
+                        if (pileNo) {
+                            document.getElementById('pileNo').value = pileNo;
+                            if (pileData[pileNo]) {
+                                document.getElementById('stationName').value = pileData[pileNo].station;
+                                document.getElementById('dealer').value = pileData[pileNo].dealer;
+                                alert(`✅ 识别成功：${pileNo}`);
+                            } else {
+                                alert(`⚠️ 未找到编号【${pileNo}】的充电桩信息！`);
+                            }
+                        } else {
+                            alert('❌ 未识别到充电桩编号，请重新扫码！');
+                        }
+                        
+                        // 识别完成后关闭弹窗
+                        closeScanModal();
+                        return;
+                    }
+                }
+                
+                // 继续扫描
+                scanAnimation = requestAnimationFrame(scan);
+            };
+            
+            scanAnimation = requestAnimationFrame(scan);
+        }
+
+        // 保存记录到WPS表格
         document.getElementById('saveBtn').addEventListener('click', async () => {
             const pileNo = document.getElementById('pileNo').value.trim();
             const station = document.getElementById('stationName').value.trim();
             const dealer = document.getElementById('dealer').value.trim();
             const status = document.getElementById('status').value.trim();
             const desc = document.getElementById('desc').value.trim() || '无';
-            const time = new Date().toLocaleString('zh-CN'); // 强制中文时间格式
+            const time = new Date().toLocaleString('zh-CN');
 
-            // 表单验证增强
             if (!pileNo) {
                 alert('请先扫码获取充电桩编号！');
                 return;
@@ -317,7 +466,6 @@
             }
 
             try {
-                // 1. 获取Access Token
                 const tokenResponse = await fetch('https://openapi.wps.cn/oauth/token', {
                     method: 'POST',
                     headers: { 
@@ -337,7 +485,6 @@
                 }
                 const accessToken = tokenData.access_token;
 
-                // 2. 追加数据到表格
                 const appendResponse = await fetch(`https://openapi.wps.cn/table/v1/tables/${encodeURIComponent(WPS_CONFIG.TABLE_ID)}/sheets/${encodeURIComponent(WPS_CONFIG.SHEET_NAME)}/append`, {
                     method: 'POST',
                     headers: {
@@ -353,7 +500,6 @@
                 const result = await appendResponse.json();
                 if (appendResponse.ok) {
                     alert('✅ 记录已成功保存到WPS表格！');
-                    // 重置表单（保留编号和站点信息，方便连续录入）
                     document.getElementById('status').value = '';
                     document.getElementById('desc').value = '';
                 } else {
@@ -365,7 +511,6 @@
             }
         });
 
-        // 页面加载完成后强制设置编码（最终保障）
         document.addEventListener('DOMContentLoaded', function() {
             document.characterSet = 'UTF-8';
             document.charset = 'UTF-8';
