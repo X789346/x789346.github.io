@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>⚡ 电桩巡检工单系统 | 修复版</title>
+    <title>⚡ 电桩巡检工单系统 | 三角色完整版</title>
     <style>
         * {
             margin: 0;
@@ -22,6 +22,7 @@
             max-width: 540px;
             margin: 0 auto;
         }
+        /* 登录页 */
         .login-card {
             background: #fff;
             border-radius: 20px;
@@ -44,11 +45,30 @@
             margin-bottom: 25px;
             font-size: 14px;
         }
-        .login-form {
-            text-align: left;
+        .role-switch {
+            display: flex;
+            background: #f7fafc;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .role-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 600;
+            color: #718096;
+            cursor: pointer;
+        }
+        .role-btn.active {
+            background: #1677ff;
+            color: #fff;
         }
         .form-group {
             margin-bottom: 20px;
+            text-align: left;
         }
         .form-group label {
             display: block;
@@ -85,21 +105,11 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             margin-bottom: 10px;
         }
-        .btn-primary { 
-            background: linear-gradient(135deg, #1677ff 0%, #0088ff 100%); 
-        }
-        .btn-success { 
-            background: linear-gradient(135deg, #07c160 0%, #00d066 100%); 
-        }
-        .btn-warning { 
-            background: linear-gradient(135deg, #ff9500 0%, #ffaa33 100%); 
-        }
-        .btn-danger { 
-            background: linear-gradient(135deg, #ff3b30 0%, #ff5252 100%); 
-        }
-        .btn-secondary { 
-            background: linear-gradient(135deg, #8e8e93 0%, #a1a1aa 100%); 
-        }
+        .btn-primary { background: linear-gradient(135deg, #1677ff 0%, #0088ff 100%); }
+        .btn-success { background: linear-gradient(135deg, #07c160 0%, #00d066 100%); }
+        .btn-warning { background: linear-gradient(135deg, #ff9500 0%, #ffaa33 100%); }
+        .btn-danger { background: linear-gradient(135deg, #ff3b30 0%, #ff5252 100%); }
+        .btn-secondary { background: linear-gradient(135deg, #8e8e93 0%, #a1a1aa 100%); }
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0,0,0,0.15);
@@ -108,39 +118,15 @@
             display: flex;
             gap: 10px;
         }
-        .code-group .form-control {
-            flex: 1;
-        }
+        .code-group .form-control { flex: 1; }
         .code-btn {
             width: 100px;
             padding: 0;
             font-size: 14px;
         }
-        .role-switch {
-            display: flex;
-            background: #f7fafc;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
-        .role-btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            background: transparent;
-            font-size: 14px;
-            font-weight: 600;
-            color: #718096;
-            cursor: pointer;
-        }
-        .role-btn.active {
-            background: #1677ff;
-            color: #fff;
-        }
 
-        .main-system {
-            display: none;
-        }
+        /* 主系统 */
+        .main-system { display: none; }
         .header-bar {
             background: #fff;
             border-radius: 20px;
@@ -175,9 +161,7 @@
             overflow-x: auto;
             padding-bottom: 4px;
         }
-        .tab-nav::-webkit-scrollbar {
-            display: none;
-        }
+        .tab-nav::-webkit-scrollbar { display: none; }
         .tab-btn {
             flex: 1;
             min-width: 100px;
@@ -201,7 +185,9 @@
             padding: 22px;
             margin-bottom: 16px;
             box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+            display: none;
         }
+        .card.active { display: block; }
         .card-title {
             font-size: 18px;
             font-weight: 700;
@@ -211,16 +197,7 @@
             align-items: center;
             gap: 6px;
         }
-        .form-item {
-            margin-bottom: 20px;
-        }
-        .form-item label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            color: #4a5568;
-            margin-bottom: 8px;
-        }
+        .form-item { margin-bottom: 20px; }
         textarea.form-control {
             min-height: 100px;
             resize: none;
@@ -232,18 +209,13 @@
             overflow: hidden;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
-        .preview-img {
-            width: 100%;
-            display: block;
-        }
+        .preview-img { width: 100%; display: block; }
         .list-section {
             max-height: 450px;
             overflow-y: auto;
             padding-right: 4px;
         }
-        .list-section::-webkit-scrollbar {
-            width: 6px;
-        }
+        .list-section::-webkit-scrollbar { width: 6px; }
         .list-section::-webkit-scrollbar-thumb {
             background: #cbd5e0;
             border-radius: 3px;
@@ -331,6 +303,8 @@
             font-size: 12px;
             margin-left: 6px;
         }
+
+        /* 扫码弹窗 */
         .scan-modal {
             position: fixed;
             top: 0; left: 0;
@@ -349,7 +323,19 @@
             border: 3px solid #07c160;
             border-radius: 16px;
             box-shadow: 0 0 30px rgba(7, 193, 96, 0.5);
-            transform: scaleX(-1); /* 👈 摄像头翻转修复 */
+        }
+        .scan-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .scan-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
         }
         .close-scan {
             position: absolute;
@@ -366,6 +352,8 @@
             font-size: 14px;
             opacity: 0.9;
         }
+
+        /* 通知提示 */
         .notify-toast {
             position: fixed;
             top: 20px;
@@ -388,60 +376,82 @@
 </head>
 <body>
 <div class="container">
+    <!-- 登录页面 -->
     <div class="login-card" id="loginPage">
         <h2>🔌 电桩巡检工单系统</h2>
-        <p>请登录后使用系统功能</p>
+        <p>请选择角色并登录</p>
         
         <div class="role-switch">
-            <button class="role-btn active" onclick="switchRole('customer')">👤 客户端</button>
-            <button class="role-btn" onclick="switchRole('admin')">🛠️ 管理端</button>
+            <button class="role-btn active" onclick="switchRole('customer')">👤 客户</button>
+            <button class="role-btn" onclick="switchRole('admin')">🛠️ 管理员</button>
+            <button class="role-btn" onclick="switchRole('maintainer')">👷 维护人员</button>
         </div>
 
-        <div class="login-form" id="customerLogin">
-            <div class="form-group">
-                <label>手机号</label>
-                <input type="tel" class="form-control" id="customerPhone" placeholder="请输入您的手机号">
-            </div>
-            <div class="form-group">
-                <label>验证码</label>
-                <div class="code-group">
-                    <input type="text" class="form-control" id="customerCode" placeholder="请输入验证码">
-                    <button class="btn code-btn btn-primary" onclick="sendCode('customer')">获取</button>
-                </div>
-            </div>
-            <button class="btn btn-primary" onclick="login('customer')">📱 验证码登录</button>
+        <!-- 客户登录 -->
+        <div class="form-group" id="customerLoginForm">
+            <label>手机号</label>
+            <input type="tel" class="form-control" id="customerPhone" placeholder="请输入您的手机号">
         </div>
+        <div class="form-group" id="customerCodeForm">
+            <label>验证码</label>
+            <div class="code-group">
+                <input type="text" class="form-control" id="customerCode" placeholder="请输入验证码">
+                <button class="btn code-btn btn-primary" onclick="sendCode()">获取</button>
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="login('customer')">📱 验证码登录</button>
 
-        <div class="login-form" id="adminLogin" style="display: none;">
-            <div class="form-group">
-                <label>账号</label>
-                <input type="text" class="form-control" id="adminUser" placeholder="请输入管理员账号" value="admin">
-            </div>
-            <div class="form-group">
-                <label>密码</label>
-                <input type="password" class="form-control" id="adminPwd" placeholder="请输入管理员密码" value="123456">
-            </div>
-            <button class="btn btn-primary" onclick="login('admin')">🔐 密码登录</button>
+        <!-- 管理员登录 (默认隐藏) -->
+        <div class="form-group" id="adminLoginForm" style="display: none;">
+            <label>管理员账号</label>
+            <input type="text" class="form-control" id="adminUser" placeholder="请输入账号" value="admin">
         </div>
+        <div class="form-group" id="adminPwdForm" style="display: none;">
+            <label>管理员密码</label>
+            <input type="password" class="form-control" id="adminPwd" placeholder="请输入密码" value="123456">
+        </div>
+        <button class="btn btn-primary" id="adminLoginBtn" style="display: none;" onclick="login('admin')">🔐 密码登录</button>
+
+        <!-- 维护人员登录 (默认隐藏) -->
+        <div class="form-group" id="maintainerLoginForm" style="display: none;">
+            <label>维护人员账号</label>
+            <input type="text" class="form-control" id="maintainerUser" placeholder="请输入账号" value="maintainer01">
+        </div>
+        <div class="form-group" id="maintainerPwdForm" style="display: none;">
+            <label>维护人员密码</label>
+            <input type="password" class="form-control" id="maintainerPwd" placeholder="请输入密码" value="123456">
+        </div>
+        <button class="btn btn-primary" id="maintainerLoginBtn" style="display: none;" onclick="login('maintainer')">🔧 密码登录</button>
     </div>
 
+    <!-- 主系统页面 -->
     <div class="main-system" id="mainSystem">
+        <!-- 头部 -->
         <div class="header-bar">
             <div class="header-title" id="userInfo">👤 客户端</div>
             <button class="logout-btn" onclick="logout()">🚪 退出登录</button>
         </div>
 
+        <!-- 客户标签页 -->
         <div class="tab-nav" id="customerTabs">
             <button class="tab-btn active" onclick="switchTab('customerReport')">📝 异常上报</button>
             <button class="tab-btn" onclick="switchTab('myOrders')">📜 我的工单</button>
         </div>
 
+        <!-- 管理员标签页 (隐藏) -->
         <div class="tab-nav" id="adminTabs" style="display: none;">
             <button class="tab-btn active" onclick="switchTab('orderManage')">📋 工单管理<span class="badge" id="orderBadge">0</span></button>
-            <button class="tab-btn" onclick="switchTab('inspectRecord')">📊 巡检记录</button>
-            <button class="tab-btn" onclick="switchTab('userManage')">👥 用户管理</button>
+            <button class="tab-btn" onclick="switchTab('staffManage')">👥 维护人员管理</button>
         </div>
 
+        <!-- 维护人员标签页 (隐藏) -->
+        <div class="tab-nav" id="maintainerTabs" style="display: none;">
+            <button class="tab-btn active" onclick="switchTab('myTask')">📋 待处理工单<span class="badge" id="taskBadge">0</span></button>
+            <button class="tab-btn" onclick="switchTab('finishedTask')">✅ 已完成工单</button>
+            <button class="tab-btn" onclick="switchTab('inspectRecord')">📊 巡检记录</button>
+        </div>
+
+        <!-- 客户上报页面 -->
         <div class="card active" id="customerReport">
             <div class="card-title">📝 充电桩异常上报</div>
             <div class="form-item">
@@ -454,7 +464,7 @@
             </div>
             <div class="form-item">
                 <label>问题描述</label>
-                <textarea class="form-control" id="reportDesc" placeholder="请详细描述充电桩异常情况"></textarea>
+                <textarea class="form-control" id="reportDesc" placeholder="请详细描述充电桩异常情况（如：无法充电、屏幕黑屏等）"></textarea>
             </div>
             <div class="form-item">
                 <button class="btn btn-warning" onclick="document.getElementById('reportPhoto').click()">🖼️ 上传现场照片</button>
@@ -466,22 +476,56 @@
             <button class="btn btn-primary" onclick="submitReport()">✅ 提交上报</button>
         </div>
 
-        <div class="card" id="myOrders" style="display: none;">
+        <!-- 客户-我的工单 -->
+        <div class="card" id="myOrders">
             <div class="card-title">📜 我的上报工单</div>
             <div class="list-section" id="myOrderList">
-                <div class="empty-tip">暂无上报记录</div>
+                <div class="empty-tip">📭 暂无上报工单</div>
             </div>
         </div>
 
-        <div class="card" id="orderManage" style="display: none;">
-            <div class="card-title">📋 待处理工单</div>
+        <!-- 管理员-工单管理 -->
+        <div class="card" id="orderManage">
+            <div class="card-title">📋 所有工单</div>
             <div class="list-section" id="adminOrderList">
-                <div class="empty-tip">暂无待处理工单</div>
+                <div class="empty-tip">📭 暂无工单</div>
             </div>
         </div>
 
-        <div class="card" id="inspectRecord" style="display: none;">
-            <div class="card-title">📊 巡检记录管理</div>
+        <!-- 管理员-维护人员管理 -->
+        <div class="card" id="staffManage">
+            <div class="card-title">👥 维护人员管理</div>
+            <div class="form-item">
+                <label>新增维护人员</label>
+                <input type="text" class="form-control" id="newStaffName" placeholder="姓名">
+                <input type="text" class="form-control" id="newStaffAccount" placeholder="账号" style="margin-top: 10px;">
+                <input type="password" class="form-control" id="newStaffPwd" placeholder="密码" style="margin-top: 10px;">
+                <button class="btn btn-success" style="margin-top: 10px;" onclick="addStaff()">➕ 添加人员</button>
+            </div>
+            <div class="list-section" id="staffList">
+                <div class="empty-tip">👥 暂无维护人员</div>
+            </div>
+        </div>
+
+        <!-- 维护人员-待处理工单 -->
+        <div class="card" id="myTask">
+            <div class="card-title">📋 待处理工单</div>
+            <div class="list-section" id="myTaskList">
+                <div class="empty-tip">📭 暂无待处理工单</div>
+            </div>
+        </div>
+
+        <!-- 维护人员-已完成工单 -->
+        <div class="card" id="finishedTask">
+            <div class="card-title">✅ 已完成工单</div>
+            <div class="list-section" id="finishedTaskList">
+                <div class="empty-tip">📭 暂无已完成工单</div>
+            </div>
+        </div>
+
+        <!-- 维护人员-巡检记录 -->
+        <div class="card" id="inspectRecord">
+            <div class="card-title">📊 巡检记录</div>
             <div class="form-item">
                 <button class="btn btn-success" onclick="openScan('inspect')">📷 扫码识别充电桩</button>
                 <input type="text" class="form-control" id="inspectPileNo" readonly placeholder="充电桩编号" style="margin-top: 10px;">
@@ -491,13 +535,9 @@
                 <input type="text" class="form-control" id="inspectStation" readonly placeholder="自动匹配站点">
             </div>
             <div class="form-item">
-                <label>巡检人员</label>
-                <input type="text" class="form-control" id="inspectPerson" placeholder="请输入巡检人员姓名">
-            </div>
-            <div class="form-item">
                 <label>处理状态</label>
                 <select class="form-control" id="inspectStatus">
-                    <option value="">请选择处理状态</option>
+                    <option value="">请选择</option>
                     <option value="已修复">✅ 已修复</option>
                     <option value="待更换">🔧 待更换</option>
                     <option value="正常">🟢 正常</option>
@@ -516,50 +556,47 @@
             </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn btn-primary" onclick="saveInspect()">💾 保存记录</button>
-                <button class="btn btn-secondary" onclick="exportRecords()">📤 导出记录</button>
+                <button class="btn btn-secondary" onclick="exportInspect()">📤 导出记录</button>
             </div>
-            
+            <!-- 巡检记录列表 -->
             <div style="margin-top: 20px;">
                 <div class="card-title">📋 历史巡检记录</div>
                 <div class="list-section" id="inspectList">
-                    <div class="empty-tip">暂无巡检记录</div>
+                    <div class="empty-tip">📊 暂无巡检记录</div>
                 </div>
-            </div>
-        </div>
-
-        <div class="card" id="userManage" style="display: none;">
-            <div class="card-title">👥 内部人员管理</div>
-            <div class="form-item">
-                <label>新增巡检人员</label>
-                <input type="text" class="form-control" id="newStaffName" placeholder="请输入巡检人员姓名">
-                <button class="btn btn-success" style="margin-top: 10px;" onclick="addStaff()">➕ 添加人员</button>
-            </div>
-            <div class="list-section" id="staffList">
-                <div class="empty-tip">暂无巡检人员</div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- 扫码弹窗 -->
 <div class="scan-modal" id="scanModal">
     <video id="scanVideo" autoplay playsinline muted></video>
-    <button class="close-scan" onclick="closeScan()">×</button>
+    <div class="scan-controls">
+        <button class="scan-btn btn-primary" onclick="flipCamera()">🔄 翻转画面</button>
+        <button class="scan-btn btn-danger" onclick="closeScan()">❌ 关闭</button>
+    </div>
     <div class="scan-tips">📲 对准充电桩二维码，自动识别</div>
 </div>
 
+<!-- 通知提示 -->
 <div class="notify-toast" id="notifyToast">通知内容</div>
 
+<!-- 依赖库 -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/parallax/jsPDF@master/libs/simhei-normal.js"></script>
 
 <script>
-let currentRole = 'customer';
-let userPhone = '';
-let codeTimer = null;
-let mediaStream = null;
+// 全局变量
+let currentRole = 'customer'; // 当前角色：customer/admin/maintainer
+let currentUser = ''; // 当前登录用户/账号
+let codeTimer = null; // 验证码倒计时
+let mediaStream = null; // 扫码流
+let cameraFlipped = false; // 摄像头是否翻转
 
+// 充电桩数据
 const pileData = {
 "HK6050202312140144":{"station":"百弘帝景"},
 "WH110W2405A0183":{"station":"(星城新能源)春园商业步行街银街"},
@@ -977,31 +1014,52 @@ const pileData = {
 "HK6050202306090001":{"station":"(嘟家(民营市场))七星豹电动车城"}
 };
 
+// ===================== 基础功能 =====================
+// 切换角色（登录页）
 function switchRole(role) {
     currentRole = role;
     document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
     
+    // 隐藏所有登录表单
+    document.getElementById('customerLoginForm').style.display = 'none';
+    document.getElementById('customerCodeForm').style.display = 'none';
+    document.getElementById('adminLoginForm').style.display = 'none';
+    document.getElementById('adminPwdForm').style.display = 'none';
+    document.getElementById('maintainerLoginForm').style.display = 'none';
+    document.getElementById('maintainerPwdForm').style.display = 'none';
+    document.getElementById('adminLoginBtn').style.display = 'none';
+    document.getElementById('maintainerLoginBtn').style.display = 'none';
+    
+    // 显示对应角色表单
     if (role === 'customer') {
-        document.getElementById('customerLogin').style.display = 'block';
-        document.getElementById('adminLogin').style.display = 'none';
-    } else {
-        document.getElementById('customerLogin').style.display = 'none';
-        document.getElementById('adminLogin').style.display = 'block';
+        document.getElementById('customerLoginForm').style.display = 'block';
+        document.getElementById('customerCodeForm').style.display = 'block';
+    } else if (role === 'admin') {
+        document.getElementById('adminLoginForm').style.display = 'block';
+        document.getElementById('adminPwdForm').style.display = 'block';
+        document.getElementById('adminLoginBtn').style.display = 'block';
+    } else if (role === 'maintainer') {
+        document.getElementById('maintainerLoginForm').style.display = 'block';
+        document.getElementById('maintainerPwdForm').style.display = 'block';
+        document.getElementById('maintainerLoginBtn').style.display = 'block';
     }
 }
 
-function sendCode(type) {
-    const phoneInput = document.getElementById('customerPhone');
-    const phone = phoneInput.value.trim();
+// 发送验证码
+function sendCode() {
+    const phone = document.getElementById('customerPhone').value.trim();
     if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
         showToast('⚠️ 请输入正确的手机号');
         return;
     }
+    
+    // 倒计时
     let count = 60;
     const btn = event.target;
     btn.disabled = true;
     btn.textContent = `${count}s`;
+    
     codeTimer = setInterval(() => {
         count--;
         btn.textContent = `${count}s`;
@@ -1011,83 +1069,134 @@ function sendCode(type) {
             btn.textContent = '获取';
         }
     }, 1000);
+    
+    // 模拟验证码
     showToast('📱 验证码已发送：123456');
     document.getElementById('customerCode').value = '123456';
 }
 
-function login(type) {
-    if (type === 'customer') {
+// 登录
+function login(role) {
+    let loginSuccess = false;
+    
+    if (role === 'customer') {
         const phone = document.getElementById('customerPhone').value.trim();
         const code = document.getElementById('customerCode').value.trim();
         if (!phone) { showToast('⚠️ 请输入手机号'); return; }
         if (code !== '123456') { showToast('❌ 验证码错误'); return; }
-        userPhone = phone;
+        currentUser = phone;
         document.getElementById('userInfo').innerHTML = `👤 客户：${phone}`;
-    } else {
+        loginSuccess = true;
+    } else if (role === 'admin') {
         const user = document.getElementById('adminUser').value.trim();
         const pwd = document.getElementById('adminPwd').value.trim();
         if (user !== 'admin' || pwd !== '123456') {
-            showToast('❌ 账号或密码错误');
+            showToast('❌ 账号/密码错误');
             return;
         }
+        currentUser = user;
         document.getElementById('userInfo').innerHTML = '🛠️ 管理员';
+        loginSuccess = true;
+    } else if (role === 'maintainer') {
+        const user = document.getElementById('maintainerUser').value.trim();
+        const pwd = document.getElementById('maintainerPwd').value.trim();
+        const staffList = getStaffList();
+        const staff = staffList.find(s => s.account === user && s.pwd === pwd);
+        if (!staff) {
+            showToast('❌ 账号/密码错误');
+            return;
+        }
+        currentUser = user;
+        document.getElementById('userInfo').innerHTML = `👷 维护员：${staff.name}`;
+        loginSuccess = true;
     }
-
-    document.getElementById('loginPage').style.display = 'none';
-    document.getElementById('mainSystem').style.display = 'block';
-
-    if (type === 'customer') {
-        document.getElementById('customerTabs').style.display = 'flex';
-        document.getElementById('adminTabs').style.display = 'none';
-    } else {
+    
+    if (loginSuccess) {
+        // 切换到主系统
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('mainSystem').style.display = 'block';
+        
+        // 显示对应角色标签页
         document.getElementById('customerTabs').style.display = 'none';
-        document.getElementById('adminTabs').style.display = 'flex';
-        renderOrderList();
-        renderStaffList();
+        document.getElementById('adminTabs').style.display = 'none';
+        document.getElementById('maintainerTabs').style.display = 'none';
+        
+        if (role === 'customer') {
+            document.getElementById('customerTabs').style.display = 'flex';
+            renderMyOrders();
+        } else if (role === 'admin') {
+            document.getElementById('adminTabs').style.display = 'flex';
+            renderAdminOrderList();
+            renderStaffList();
+        } else if (role === 'maintainer') {
+            document.getElementById('maintainerTabs').style.display = 'flex';
+            renderMyTaskList();
+            renderFinishedTaskList();
+            renderInspectList();
+        }
+        showToast('✅ 登录成功！');
     }
-    renderMyOrders();
-    renderInspectList();
-    showToast('✅ 登录成功！');
 }
 
-function logout() { location.reload(); }
+// 退出登录
+function logout() {
+    location.reload();
+}
 
+// 显示通知
 function showToast(msg) {
     const toast = document.getElementById('notifyToast');
     toast.textContent = msg;
     toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 2000);
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 2000);
 }
 
+// 切换标签页
 function switchTab(tabId) {
+    // 隐藏所有卡片
     document.querySelectorAll('.card').forEach(el => {
         el.classList.remove('active');
         el.style.display = 'none';
     });
+    // 取消所有标签激活
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    // 激活当前标签
     event.target.classList.add('active');
     document.getElementById(tabId).style.display = 'block';
     document.getElementById(tabId).classList.add('active');
-
+    
+    // 刷新对应数据
     if (tabId === 'myOrders') renderMyOrders();
-    if (tabId === 'orderManage') renderOrderList();
+    if (tabId === 'orderManage') renderAdminOrderList();
+    if (tabId === 'staffManage') renderStaffList();
+    if (tabId === 'myTask') renderMyTaskList();
+    if (tabId === 'finishedTask') renderFinishedTaskList();
     if (tabId === 'inspectRecord') renderInspectList();
-    if (tabId === 'userManage') renderStaffList();
 }
 
+// 照片预览
 function previewPhoto(type) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => {
-        document.getElementById(`${type}PreviewImg`).src = e.target.result;
-        document.getElementById(`${type}PhotoPreview`).style.display = 'block';
+    reader.onload = function(e) {
+        const previewImg = document.getElementById(`${type}PreviewImg`);
+        const previewBox = document.getElementById(`${type}PhotoPreview`);
+        previewImg.src = e.target.result;
+        previewBox.style.display = 'block';
     };
     reader.readAsDataURL(file);
 }
 
+// ===================== 扫码功能（带翻转按钮）=====================
+// 打开扫码
 function openScan(type) {
     document.getElementById('scanModal').classList.add('show');
+    cameraFlipped = false; // 重置翻转状态
+    
+    // 调用摄像头
     navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' }
     }).then(stream => {
@@ -1095,24 +1204,38 @@ function openScan(type) {
         const video = document.getElementById('scanVideo');
         video.srcObject = stream;
         video.play();
-
+        
+        // 开始识别二维码
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const scanTimer = setInterval(() => {
             if (!mediaStream) return clearInterval(scanTimer);
+            
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
+                
+                // 根据翻转状态绘制画面
+                ctx.save();
+                if (cameraFlipped) {
+                    ctx.translate(canvas.width, 0);
+                    ctx.scale(-1, 1);
+                }
                 ctx.drawImage(video, 0, 0);
+                ctx.restore();
+                
+                // 识别二维码
                 const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
                 if (code) {
                     clearInterval(scanTimer);
                     const pileNo = extractPileNo(code.data);
+                    
                     if (pileNo) {
+                        // 填充充电桩信息
                         if (type === 'customer') {
                             document.getElementById('reportPileNo').value = pileNo;
                             document.getElementById('reportStation').value = pileData[pileNo]?.station || '未匹配站点';
-                        } else {
+                        } else if (type === 'inspect') {
                             document.getElementById('inspectPileNo').value = pileNo;
                             document.getElementById('inspectStation').value = pileData[pileNo]?.station || '未匹配站点';
                         }
@@ -1130,221 +1253,503 @@ function openScan(type) {
     });
 }
 
+// 翻转摄像头画面
+function flipCamera() {
+    cameraFlipped = !cameraFlipped;
+    const video = document.getElementById('scanVideo');
+    if (cameraFlipped) {
+        video.style.transform = 'scaleX(-1)';
+    } else {
+        video.style.transform = 'scaleX(1)';
+    }
+    showToast(cameraFlipped ? '🔄 画面已翻转' : '🔄 画面已恢复');
+}
+
+// 关闭扫码
 function closeScan() {
     document.getElementById('scanModal').classList.remove('show');
     if (mediaStream) {
-        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream.getTracks().forEach(track => track.stop());
         mediaStream = null;
     }
 }
 
+// 提取充电桩编号
 function extractPileNo(str) {
-    const m = str.match(/(hk|wh)[0-9a-zA-Z]+/i);
-    return m ? m[0].toUpperCase() : '';
+    const match = str.match(/(hk|wh)[0-9a-zA-Z]+/i);
+    return match ? match[0].toUpperCase() : '';
 }
 
-// ====================== 【已修复】客户端提交工单 ======================
+// ===================== 工单相关 =====================
+// 获取所有工单
+function getOrders() {
+    try {
+        return JSON.parse(localStorage.getItem('charge_orders') || '[]');
+    } catch (e) {
+        return [];
+    }
+}
+
+// 保存工单（客户上报）
 function submitReport() {
     const pileNo = document.getElementById('reportPileNo').value.trim();
     const station = document.getElementById('reportStation').value.trim();
     const desc = document.getElementById('reportDesc').value.trim();
     const photo = document.getElementById('reportPreviewImg').src || '';
-
-    if (!pileNo) { showToast('⚠️ 请先扫码'); return; }
+    
+    if (!pileNo) { showToast('⚠️ 请先扫码识别充电桩'); return; }
     if (!desc) { showToast('⚠️ 请填写问题描述'); return; }
-    if (!userPhone) { showToast('❌ 登录异常，请重新登录'); return; }
-
+    
+    // 检查24小时重复提交
     const orders = getOrders();
+    const now = Date.now();
+    const repeat = orders.some(o => 
+        o.pileNo === pileNo && 
+        o.phone === currentUser && 
+        (now - o.createTime) < 24 * 60 * 60 * 1000
+    );
+    if (repeat) {
+        showToast('⏳ 该充电桩24小时内已上报，请勿重复提交');
+        return;
+    }
+    
+    // 保存新工单
     const newOrder = {
         id: Date.now(),
-        pileNo, station,
-        phone: userPhone,
-        desc, photo,
-        status: 0,
-        assignTo: '',
+        pileNo,
+        station,
+        phone: currentUser,
+        desc,
+        photo,
+        status: 0, // 0-待分配 1-待处理 2-已完成
+        assignTo: '', // 分配给的维护人员账号
         createTime: Date.now(),
         updateTime: Date.now()
     };
-
     orders.push(newOrder);
     localStorage.setItem('charge_orders', JSON.stringify(orders));
-
+    
+    // 清空表单
     document.getElementById('reportPileNo').value = '';
     document.getElementById('reportStation').value = '';
     document.getElementById('reportDesc').value = '';
     document.getElementById('reportPhoto').value = '';
     document.getElementById('reportPhotoPreview').style.display = 'none';
-
+    
+    // 刷新数据
     renderMyOrders();
-    renderOrderList();
+    renderAdminOrderList();
     showToast('✅ 工单上报成功！');
 }
 
-function getOrders() {
-    try { return JSON.parse(localStorage.getItem('charge_orders') || '[]'); } 
-    catch (e) { return []; }
+// 客户-我的工单
+function renderMyOrders() {
+    const orders = getOrders().filter(o => o.phone === currentUser);
+    const el = document.getElementById('myOrderList');
+    
+    if (orders.length === 0) {
+        el.innerHTML = '<div class="empty-tip">📭 暂无上报工单</div>';
+        return;
+    }
+    
+    const statusText = ['⏳ 待分配', '🔧 处理中', '✅ 已完成'];
+    const statusClass = ['tag-wait', 'tag-process', 'tag-done'];
+    
+    el.innerHTML = orders.map(o => {
+        const time = new Date(o.createTime).toLocaleString();
+        return `
+        <div class="list-item status-${o.status}">
+            <div class="status-tag ${statusClass[o.status]}">${statusText[o.status]}</div>
+            <div class="info-line"><strong>🔌 桩号：</strong>${o.pileNo}</div>
+            <div class="info-line"><strong>📍 站点：</strong>${o.station}</div>
+            <div class="info-line"><strong>📝 问题：</strong>${o.desc}</div>
+            <div class="info-line"><strong>👷 处理人：</strong>${o.assignTo || '未分配'}</div>
+            <div class="info-sm">📅 提交时间：${time}</div>
+        </div>
+        `;
+    }).join('');
 }
 
-function renderMyOrders() {
-    const orders = getOrders().filter(o => o.phone === userPhone);
-    const el = document.getElementById('myOrderList');
-    if (!orders.length) {
+// 管理员-所有工单
+function renderAdminOrderList() {
+    const orders = getOrders();
+    const el = document.getElementById('adminOrderList');
+    // 更新未处理工单数量
+    document.getElementById('orderBadge').textContent = orders.filter(o => o.status === 0).length;
+    
+    if (orders.length === 0) {
         el.innerHTML = '<div class="empty-tip">📭 暂无工单</div>';
         return;
     }
-    const st = ['⏳ 待处理','🔧 处理中','✅ 已完成'];
-    const sc = ['tag-wait','tag-process','tag-done'];
-    el.innerHTML = orders.map(o => `
-    <div class="list-item status-${o.status}">
-        <div class="status-tag ${sc[o.status]}">${st[o.status]}</div>
-        <div class="info-line"><strong>🔌 桩号：</strong>${o.pileNo}</div>
-        <div class="info-line"><strong>📍 站点：</strong>${o.station}</div>
-        <div class="info-line"><strong>📝 问题：</strong>${o.desc}</div>
-        <div class="info-line"><strong>👷 处理人：</strong>${o.assignTo || '未分配'}</div>
-    </div>`).join('');
+    
+    const statusText = ['⏳ 待分配', '🔧 处理中', '✅ 已完成'];
+    const statusClass = ['tag-wait', 'tag-process', 'tag-done'];
+    
+    el.innerHTML = orders.map(o => {
+        const time = new Date(o.createTime).toLocaleString();
+        return `
+        <div class="list-item status-${o.status}">
+            <div class="status-tag ${statusClass[o.status]}">${statusText[o.status]}</div>
+            <div class="info-line"><strong>🔌 桩号：</strong>${o.pileNo}</div>
+            <div class="info-line"><strong>📍 站点：</strong>${o.station}</div>
+            <div class="info-line"><strong>📞 客户：</strong>${o.phone}</div>
+            <div class="info-line"><strong>📝 问题：</strong>${o.desc}</div>
+            <div class="info-line"><strong>👷 处理人：</strong>${o.assignTo || '未分配'}</div>
+            <div class="info-sm">📅 提交时间：${time}</div>
+            
+            <div class="operate-group">
+                ${o.status === 0 ? `<button class="mini-btn btn-primary" onclick="assignOrder(${o.id})">🔄 分配</button>` : ''}
+                <button class="mini-btn btn-danger" onclick="deleteOrder(${o.id})">🗑 删除</button>
+            </div>
+        </div>
+        `;
+    }).join('');
 }
 
-function renderOrderList() {
+// 管理员-分配工单
+function assignOrder(orderId) {
+    const staffList = getStaffList();
+    if (staffList.length === 0) {
+        showToast('⚠️ 请先添加维护人员');
+        switchTab('staffManage');
+        return;
+    }
+    
+    // 显示可选人员
+    const staffStr = staffList.map(s => `${s.name}（${s.account}）`).join('、');
+    const assignAccount = prompt(`👷 请输入分配的维护人员账号（可选：${staffStr}）：`, staffList[0]?.account || '');
+    
+    if (!assignAccount) return;
+    // 验证账号是否存在
+    const staff = staffList.find(s => s.account === assignAccount);
+    if (!staff) {
+        showToast('❌ 维护人员账号不存在');
+        return;
+    }
+    
+    // 更新工单状态
     const orders = getOrders();
-    const el = document.getElementById('adminOrderList');
-    document.getElementById('orderBadge').textContent = orders.filter(o=>o.status===0).length;
-    if (!orders.length) { el.innerHTML = '<div class="empty-tip">📭 暂无工单</div>'; return; }
-    const st = ['⏳ 待处理','🔧 处理中','✅ 已完成'];
-    const sc = ['tag-wait','tag-process','tag-done'];
-    el.innerHTML = orders.map(o=>`
+    const index = orders.findIndex(o => o.id === orderId);
+    if (index > -1) {
+        orders[index].status = 1; // 改为待处理
+        orders[index].assignTo = staff.account;
+        orders[index].updateTime = Date.now();
+        localStorage.setItem('charge_orders', JSON.stringify(orders));
+        
+        renderAdminOrderList();
+        renderMyOrders();
+        renderMyTaskList();
+        showToast(`✅ 已分配给：${staff.name}`);
+    }
+}
+
+// 管理员-删除工单
+function deleteOrder(orderId) {
+    if (!confirm('🗑 确定删除该工单？')) return;
+    const orders = getOrders().filter(o => o.id !== orderId);
+    localStorage.setItem('charge_orders', JSON.stringify(orders));
+    renderAdminOrderList();
+    renderMyOrders();
+    showToast('✅ 工单已删除');
+}
+
+// ===================== 维护人员管理 =====================
+// 获取维护人员列表
+function getStaffList() {
+    try {
+        return JSON.parse(localStorage.getItem('charge_staff') || '[]');
+    } catch (e) {
+        return [];
+    }
+}
+
+// 管理员-添加维护人员
+function addStaff() {
+    const name = document.getElementById('newStaffName').value.trim();
+    const account = document.getElementById('newStaffAccount').value.trim();
+    const pwd = document.getElementById('newStaffPwd').value.trim();
+    
+    if (!name || !account || !pwd) {
+        showToast('⚠️ 请填写完整信息');
+        return;
+    }
+    
+    const staffList = getStaffList();
+    if (staffList.some(s => s.account === account)) {
+        showToast('⚠️ 账号已存在');
+        return;
+    }
+    
+    staffList.push({
+        id: Date.now(),
+        name,
+        account,
+        pwd,
+        createTime: Date.now()
+    });
+    localStorage.setItem('charge_staff', JSON.stringify(staffList));
+    
+    // 清空表单
+    document.getElementById('newStaffName').value = '';
+    document.getElementById('newStaffAccount').value = '';
+    document.getElementById('newStaffPwd').value = '';
+    
+    renderStaffList();
+    showToast(`✅ 添加成功：${name}`);
+}
+
+// 管理员-渲染维护人员列表
+function renderStaffList() {
+    const staffList = getStaffList();
+    const el = document.getElementById('staffList');
+    
+    if (staffList.length === 0) {
+        el.innerHTML = '<div class="empty-tip">👥 暂无维护人员</div>';
+        return;
+    }
+    
+    el.innerHTML = staffList.map(s => `
+    <div class="list-item">
+        <button class="del-btn" onclick="deleteStaff(${s.id})">×</button>
+        <div class="info-line"><strong>👤 姓名：</strong>${s.name}</div>
+        <div class="info-line"><strong>🔑 账号：</strong>${s.account}</div>
+        <div class="info-line"><strong>🔒 密码：</strong>${s.pwd}</div>
+    </div>
+    `).join('');
+}
+
+// 管理员-删除维护人员
+function deleteStaff(staffId) {
+    if (!confirm('🗑 确定删除该维护人员？')) return;
+    const staffList = getStaffList().filter(s => s.id !== staffId);
+    localStorage.setItem('charge_staff', JSON.stringify(staffList));
+    renderStaffList();
+    showToast('✅ 已删除');
+}
+
+// ===================== 维护人员功能 =====================
+// 维护人员-待处理工单
+function renderMyTaskList() {
+    const orders = getOrders().filter(o => o.status === 1 && o.assignTo === currentUser);
+    const el = document.getElementById('myTaskList');
+    document.getElementById('taskBadge').textContent = orders.length;
+    
+    if (orders.length === 0) {
+        el.innerHTML = '<div class="empty-tip">📭 暂无待处理工单</div>';
+        return;
+    }
+    
+    el.innerHTML = orders.map(o => `
     <div class="list-item status-${o.status}">
-        <div class="status-tag ${sc[o.status]}">${st[o.status]}</div>
+        <div class="status-tag tag-process">🔧 待处理</div>
         <div class="info-line"><strong>🔌 桩号：</strong>${o.pileNo}</div>
         <div class="info-line"><strong>📍 站点：</strong>${o.station}</div>
         <div class="info-line"><strong>📞 客户：</strong>${o.phone}</div>
         <div class="info-line"><strong>📝 问题：</strong>${o.desc}</div>
-        <div class="info-line"><strong>👷 处理人：</strong>${o.assignTo || '未分配'}</div>
         <div class="operate-group">
-            ${o.status===0?`<button class="mini-btn btn-primary" onclick="assignOrder(${o.id})">分配</button>`:''}
-            ${o.status===1?`<button class="mini-btn btn-success" onclick="completeOrder(${o.id})">完成</button>`:''}
-            <button class="mini-btn btn-danger" onclick="deleteOrder(${o.id})">删除</button>
+            <button class="mini-btn btn-success" onclick="finishTask(${o.id})">✅ 标记完成</button>
         </div>
-    </div>`).join('');
+    </div>
+    `).join('');
 }
 
-function assignOrder(id){
-    const staff=getStaffList();
-    if(!staff.length){showToast('⚠️ 请先添加人员');switchTab('userManage');return;}
-    const name=prompt('分配给：',staff[0].name);
-    if(!name)return;
-    const orders=getOrders();
-    const i=orders.findIndex(o=>o.id===id);
-    if(i>-1){orders[i].status=1;orders[i].assignTo=name;localStorage.setItem('charge_orders',JSON.stringify(orders));renderOrderList();renderMyOrders();showToast('✅ 已分配');}
-}
-function completeOrder(id){
-    const orders=getOrders();
-    const i=orders.findIndex(o=>o.id===id);
-    if(i>-1){orders[i].status=2;localStorage.setItem('charge_orders',JSON.stringify(orders));renderOrderList();renderMyOrders();showToast('✅ 已完成');}
-}
-function deleteOrder(id){
-    if(!confirm('🗑 删除？'))return;
-    localStorage.setItem('charge_orders',JSON.stringify(getOrders().filter(o=>o.id!==id)));
-    renderOrderList();renderMyOrders();showToast('✅ 已删除');
-}
-
-function getStaffList(){try{return JSON.parse(localStorage.getItem('charge_staff')||'[]');}catch(e){return[];}}
-function addStaff(){
-    const n=document.getElementById('newStaffName').value.trim();
-    if(!n){showToast('⚠️ 输入姓名');return;}
-    const s=getStaffList();
-    if(s.some(x=>x.name===n)){showToast('⚠️ 已存在');return;}
-    s.push({id:Date.now(),name:n,createTime:Date.now()});
-    localStorage.setItem('charge_staff',JSON.stringify(s));
-    document.getElementById('newStaffName').value='';
-    renderStaffList();showToast('✅ 添加成功');
-}
-function renderStaffList(){
-    const s=getStaffList();
-    const el=document.getElementById('staffList');
-    if(!s.length){el.innerHTML='<div class="empty-tip">👥 暂无人员</div>';return;}
-    el.innerHTML=s.map(x=>`
-    <div class="list-item">
-        <button class="del-btn" onclick="deleteStaff(${x.id})">×</button>
-        <div class="info-line"><strong>👤 ${x.name}</strong></div>
-    </div>`).join('');
-}
-function deleteStaff(id){
-    if(!confirm('🗑 删除？'))return;
-    localStorage.setItem('charge_staff',JSON.stringify(getStaffList().filter(x=>x.id!==id)));
-    renderStaffList();showToast('✅ 已删除');
+// 维护人员-已完成工单
+function renderFinishedTaskList() {
+    const orders = getOrders().filter(o => o.status === 2 && o.assignTo === currentUser);
+    const el = document.getElementById('finishedTaskList');
+    
+    if (orders.length === 0) {
+        el.innerHTML = '<div class="empty-tip">📭 暂无已完成工单</div>';
+        return;
+    }
+    
+    el.innerHTML = orders.map(o => {
+        const time = new Date(o.updateTime).toLocaleString();
+        return `
+        <div class="list-item status-${o.status}">
+            <div class="status-tag tag-done">✅ 已完成</div>
+            <div class="info-line"><strong>🔌 桩号：</strong>${o.pileNo}</div>
+            <div class="info-line"><strong>📍 站点：</strong>${o.station}</div>
+            <div class="info-line"><strong>📝 问题：</strong>${o.desc}</div>
+            <div class="info-sm">📅 完成时间：${time}</div>
+        </div>
+        `;
+    }).join('');
 }
 
-function getInspectList(){try{return JSON.parse(localStorage.getItem('charge_inspect')||'[]');}catch(e){return[];}}
-function saveInspect(){
-    const p=document.getElementById('inspectPileNo').value.trim();
-    const s=document.getElementById('inspectStation').value.trim();
-    const pe=document.getElementById('inspectPerson').value.trim();
-    const st=document.getElementById('inspectStatus').value.trim();
-    const r=document.getElementById('inspectResult').value.trim()||'无';
-    const ph=document.getElementById('inspectPreviewImg').src||'';
-    if(!p||!pe||!st){showToast('⚠️ 信息不全');return;}
-    const list=getInspectList();
-    list.push({id:Date.now(),pileNo:p,station:s,person:pe,status:st,result:r,photo:ph,createTime:Date.now()});
-    localStorage.setItem('charge_inspect',JSON.stringify(list));
-    document.getElementById('inspectPerson').value='';
-    document.getElementById('inspectStatus').value='';
-    document.getElementById('inspectResult').value='';
-    document.getElementById('inspectPhoto').value='';
-    document.getElementById('inspectPhotoPreview').style.display='none';
-    renderInspectList();showToast('✅ 保存成功');
-}
-function renderInspectList(){
-    const list=getInspectList();
-    const el=document.getElementById('inspectList');
-    if(!list.length){el.innerHTML='<div class="empty-tip">📊 暂无记录</div>';return;}
-    el.innerHTML=list.map(x=>`
-    <div class="list-item">
-        <button class="del-btn" onclick="deleteInspect(${x.id})">×</button>
-        <div class="info-line"><strong>🔌 ${x.pileNo}</strong> ${x.station}</div>
-        <div class="info-line">👤 ${x.person} | ${x.status}</div>
-        <div class="info-line">📝 ${x.result}</div>
-    </div>`).join('');
-}
-function deleteInspect(id){
-    if(!confirm('🗑 删除？'))return;
-    localStorage.setItem('charge_inspect',JSON.stringify(getInspectList().filter(x=>x.id!==id)));
-    renderInspectList();showToast('✅ 已删除');
+// 维护人员-标记工单完成
+function finishTask(orderId) {
+    const orders = getOrders();
+    const index = orders.findIndex(o => o.id === orderId);
+    if (index > -1) {
+        orders[index].status = 2;
+        orders[index].updateTime = Date.now();
+        localStorage.setItem('charge_orders', JSON.stringify(orders));
+        
+        renderMyTaskList();
+        renderFinishedTaskList();
+        renderAdminOrderList();
+        renderMyOrders();
+        showToast('✅ 工单已标记完成！');
+    }
 }
 
-function exportRecords(){
-    const list=getInspectList();
-    if(!list.length){showToast('⚠️ 无记录');return;}
-    const data=list.map(x=>({
-        '桩号':x.pileNo,
-        '站点':x.station,
-        '巡检人':x.person,
-        '状态':x.status,
-        '结果':x.result,
-        '时间':new Date(x.createTime).toLocaleString()
+// ===================== 巡检记录（维护人员）=====================
+// 获取巡检记录
+function getInspectList() {
+    try {
+        return JSON.parse(localStorage.getItem('charge_inspect') || '[]');
+    } catch (e) {
+        return [];
+    }
+}
+
+// 保存巡检记录
+function saveInspect() {
+    const pileNo = document.getElementById('inspectPileNo').value.trim();
+    const station = document.getElementById('inspectStation').value.trim();
+    const status = document.getElementById('inspectStatus').value.trim();
+    const result = document.getElementById('inspectResult').value.trim() || '无';
+    const photo = document.getElementById('inspectPreviewImg').src || '';
+    
+    if (!pileNo) { showToast('⚠️ 请先扫码识别充电桩'); return; }
+    if (!status) { showToast('⚠️ 请选择处理状态'); return; }
+    
+    // 获取维护人员信息
+    const staffList = getStaffList();
+    const staff = staffList.find(s => s.account === currentUser);
+    const staffName = staff ? staff.name : currentUser;
+    
+    // 保存记录
+    const inspectList = getInspectList();
+    inspectList.push({
+        id: Date.now(),
+        pileNo,
+        station,
+        maintainer: staffName,
+        status,
+        result,
+        photo,
+        createTime: Date.now()
+    });
+    localStorage.setItem('charge_inspect', JSON.stringify(inspectList));
+    
+    // 清空表单
+    document.getElementById('inspectPileNo').value = '';
+    document.getElementById('inspectStation').value = '';
+    document.getElementById('inspectStatus').value = '';
+    document.getElementById('inspectResult').value = '';
+    document.getElementById('inspectPhoto').value = '';
+    document.getElementById('inspectPhotoPreview').style.display = 'none';
+    
+    renderInspectList();
+    showToast('✅ 巡检记录保存成功！');
+}
+
+// 渲染巡检记录
+function renderInspectList() {
+    const inspectList = getInspectList().filter(i => i.maintainer === (getStaffList().find(s=>s.account===currentUser)?.name || currentUser));
+    const el = document.getElementById('inspectList');
+    
+    if (inspectList.length === 0) {
+        el.innerHTML = '<div class="empty-tip">📊 暂无巡检记录</div>';
+        return;
+    }
+    
+    el.innerHTML = inspectList.map(item => {
+        const time = new Date(item.createTime).toLocaleString();
+        return `
+        <div class="list-item">
+            <button class="del-btn" onclick="deleteInspect(${item.id})">×</button>
+            <div class="info-line"><strong>🔌 桩号：</strong>${item.pileNo}</div>
+            <div class="info-line"><strong>📍 站点：</strong>${item.station}</div>
+            <div class="info-line"><strong>👷 维护员：</strong>${item.maintainer}</div>
+            <div class="info-line"><strong>📊 状态：</strong>${item.status}</div>
+            <div class="info-line"><strong>📝 结果：</strong>${item.result}</div>
+            <div class="info-sm">📅 记录时间：${time}</div>
+        </div>
+        `;
+    }).join('');
+}
+
+// 删除巡检记录
+function deleteInspect(inspectId) {
+    if (!confirm('🗑 确定删除该巡检记录？')) return;
+    const inspectList = getInspectList().filter(i => i.id !== inspectId);
+    localStorage.setItem('charge_inspect', JSON.stringify(inspectList));
+    renderInspectList();
+    showToast('✅ 记录已删除！');
+}
+
+// 导出巡检记录（修复导出功能）
+function exportInspect() {
+    const inspectList = getInspectList().filter(i => i.maintainer === (getStaffList().find(s=>s.account===currentUser)?.name || currentUser));
+    if (inspectList.length === 0) {
+        showToast('⚠️ 暂无巡检记录可导出');
+        return;
+    }
+    
+    // 导出Excel
+    const excelData = inspectList.map(item => ({
+        '充电桩编号': item.pileNo,
+        '站点名称': item.station,
+        '维护人员': item.maintainer,
+        '处理状态': item.status,
+        '处理结果': item.result,
+        '记录时间': new Date(item.createTime).toLocaleString()
     }));
-    const ws=XLSX.utils.json_to_sheet(data);
-    const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'巡检记录');
-    XLSX.writeFile(wb,'巡检记录.xlsx');
-
-    setTimeout(()=>{
-        const {jsPDF}=window.jspdf;
-        const pdf=new jsPDF('p','mm','a4');
-        pdf.addFont('simhei-normal.js','simhei','normal');
+    
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '巡检记录');
+    XLSX.writeFile(wb, `巡检记录_${new Date().toLocaleDateString()}.xlsx`);
+    
+    // 导出PDF（修复乱码）
+    setTimeout(() => {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        // 加载中文字体
+        pdf.addFont('simhei-normal.js', 'simhei', 'normal');
         pdf.setFont('simhei');
-        let y=20;
-        pdf.text('⚡ 充电桩巡检记录',105,y,{align:'center'});
-        y+=15;
-        list.forEach((x,i)=>{
-            if(y>270){pdf.addPage();y=20;}
-            pdf.text(`#${i+1}  ${x.pileNo}`,10,y);y+=8;
-            pdf.text(`站点：${x.station}`,10,y);y+=7;
-            pdf.text(`巡检：${x.person}  ${x.status}`,10,y);y+=7;
-            pdf.text(`结果：${x.result}`,10,y);y+=12;
+        
+        let y = 20;
+        pdf.setFontSize(18);
+        pdf.text('⚡ 充电桩巡检记录', 105, y, { align: 'center' });
+        y += 15;
+        
+        inspectList.forEach((item, index) => {
+            if (y > 270) {
+                pdf.addPage();
+                y = 20;
+            }
+            
+            pdf.setFontSize(14);
+            pdf.text(`记录 ${index + 1}`, 10, y);
+            y += 8;
+            
+            pdf.setFontSize(12);
+            pdf.text(`🔌 充电桩：${item.pileNo}`, 10, y); y += 7;
+            pdf.text(`📍 站点：${item.station}`, 10, y); y += 7;
+            pdf.text(`👷 维护员：${item.maintainer}`, 10, y); y += 7;
+            pdf.text(`📊 状态：${item.status}`, 10, y); y += 7;
+            pdf.text(`📝 结果：${item.result}`, 10, y); y += 7;
+            pdf.text(`📅 时间：${new Date(item.createTime).toLocaleString()}`, 10, y); y += 12;
+            
+            // 插入照片
+            if (item.photo && y < 260) {
+                try {
+                    pdf.addImage(item.photo, 'JPEG', 10, y, 130, 90);
+                    y += 95;
+                } catch (e) {
+                    console.log('照片插入失败', e);
+                }
+            }
         });
-        pdf.save('巡检记录.pdf');
-        showToast('✅ Excel+PDF 导出成功');
-    },500);
+        
+        pdf.save(`巡检记录_${new Date().toLocaleDateString()}.pdf`);
+        showToast('✅ Excel+PDF 导出成功！');
+    }, 800);
 }
 </script>
 </body>
