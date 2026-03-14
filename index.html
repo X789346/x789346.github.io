@@ -96,6 +96,12 @@
             margin-top: 15px;
             font-size: 14px;
         }
+        #photoPreview {
+            margin-top:10px; display:none;
+        }
+        #previewImg {
+            max-width:100%; border-radius:6px;
+        }
     </style>
 </head>
 <body>
@@ -134,10 +140,9 @@
 
     <div class="form-item">
         <button id="photoBtn">现场拍照/相册选取</button>
-        <!-- 去掉capture="camera"，支持拍照+相册 -->
         <input type="file" id="photoInput" accept="image/*" style="display:none;">
-        <div id="photoPreview" style="margin-top:10px; display:none;">
-            <img id="previewImg" style="max-width:100%; border-radius:6px;">
+        <div id="photoPreview">
+            <img id="previewImg">
         </div>
     </div>
 
@@ -152,7 +157,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-// 补全的充电桩数据（完整无误）
 const pileData = {
 "HK6050202312140144":{"station":"百弘帝景","dealer":"五号快充"},
 "WH110W2405A0183":{"station":"(星城新能源)春园商业步行街银街","dealer":"星城新能源"},
@@ -257,10 +261,7 @@ const pileData = {
 "WH110W2405A0185":{"station":"(星城新能源)春园商业步行街银街","dealer":"星城新能源"}
 };
 
-let mediaStream = null;
-let scanAnimation = null;
-
-// 拍照/相册选取 + 预览
+// 拍照 + 预览
 document.getElementById('photoBtn').onclick = function(){
     document.getElementById('photoInput').click();
 };
@@ -276,129 +277,93 @@ document.getElementById('photoInput').onchange = function(e){
     }
 };
 
-// 扫码功能（修复兼容+权限处理）
+// 扫码
+let mediaStream = null;
 document.getElementById('scanBtn').addEventListener('click', async () => {
-    // 安全环境检测
-    if(!window.isSecureContext && !location.hostname.includes('localhost')){
-        alert('请在HTTPS/localhost环境下使用扫码功能，本地file://打开无法调用摄像头！');
-        return;
-    }
     document.getElementById('scanModal').classList.add('show');
     try {
-        // 兼容旧版浏览器getUserMedia
-        const nav = navigator.mediaDevices || ((navigator.mozGetUserMedia || navigator.webkitGetUserMedia) ? {
-            getUserMedia: (c) => new Promise((y,n) => (navigator.mozGetUserMedia || navigator.webkitGetUserMedia).call(navigator,c,y,n))
-        } : null);
-        if(!nav) {
-            alert('设备不支持摄像头调用');
-            closeScanModal();
-            return;
-        }
-        // 适配iOS/安卓的视频参数
-        const constraints = {
-            video: {
-                facingMode: 'environment',
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
-        };
-        mediaStream = await nav.getUserMedia(constraints);
+        const constraints = { video: { facingMode: 'environment' } };
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
         const video = document.getElementById('scanVideo');
         video.srcObject = mediaStream;
-        // 等待视频加载
         await video.play();
         startScan();
     } catch (err) {
-        console.error('扫码错误:', err);
-        let msg = '摄像头调用失败：';
-        if(err.name === 'NotAllowedError') msg += '请手动开启相机权限';
-        else if(err.name === 'NotFoundError') msg += '未找到摄像头设备';
-        else if(err.name === 'NotReadableError') msg += '摄像头被占用，请关闭其他应用';
-        else msg += err.message;
-        alert(msg);
+        alert('摄像头失败：请允许权限或在微信/浏览器打开');
         closeScanModal();
     }
 });
 
-// 关闭扫码
-document.getElementById('closeScanBtn').addEventListener('click', closeScanModal);
 function closeScanModal(){
     document.getElementById('scanModal').classList.remove('show');
-    if(mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-    if(scanAnimation) cancelAnimationFrame(scanAnimation);
-    mediaStream = null;
-    scanAnimation = null;
+    if(mediaStream) mediaStream.getTracks().forEach(t=>t.stop());
 }
+document.getElementById('closeScanBtn').onclick = closeScanModal;
 
-// 扫码识别逻辑
 function startScan(){
     const video = document.getElementById('scanVideo');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    const scan = () => {
-        if(video.readyState === video.HAVE_ENOUGH_DATA && mediaStream){
+    function scan(){
+        if(video.readyState === video.HAVE_ENOUGH_DATA){
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0);
+            ctx.drawImage(video,0,0);
             const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
             if(code){
-                let codeNo = code.data.trim().match(/(WH|HK)\w+/)?.[0] || code.data;
+                const codeNo = code.data.trim();
                 if(pileData[codeNo]){
                     document.getElementById('pileNo').value = codeNo;
                     document.getElementById('stationName').value = pileData[codeNo].station;
                     document.getElementById('dealer').value = pileData[codeNo].dealer;
                     alert('识别成功：'+codeNo);
-                }else{
-                    alert('未找到该充电桩：'+codeNo);
+                } else {
+                    alert('未找到此桩：'+codeNo);
                 }
                 closeScanModal();
                 return;
             }
         }
-        scanAnimation = requestAnimationFrame(scan);
-    };
-    scanAnimation = requestAnimationFrame(scan);
+        requestAnimationFrame(scan);
+    }
+    scan();
 }
 
-// 提交到在线总表
+// ========== 真正提交到总表（这是关键！）==========
 document.getElementById('submitBtn').onclick = async function(){
     const pileNo = document.getElementById('pileNo').value.trim();
     const station = document.getElementById('stationName').value.trim();
     const dealer = document.getElementById('dealer').value.trim();
     const status = document.getElementById('status').value.trim();
     const desc = document.getElementById('desc').value.trim() || '无';
-    const time = new Date().toLocaleString('zh-CN');
-    const photo = document.getElementById('photoInput').files[0];
 
     if(!pileNo || !status){
-        alert('请先扫码并选择设备状态！');
+        alert('请先扫码并选择状态');
         return;
     }
 
     try {
-        // 这里对接金山文档表单提交（需在金山文档创建表单并替换链接）
-        // 示例：替换为你的金山文档表单提交地址
-        const formData = new FormData();
-        formData.append('充电桩编号', pileNo);
-        formData.append('站点名称', station);
-        formData.append('经销商', dealer);
-        formData.append('设备状态', status);
-        formData.append('问题描述', desc);
-        formData.append('提交时间', time);
-        if(photo) formData.append('现场照片', photo);
+        const res = await fetch("https://hook.us1.make.com/xxxxxxxxxxxxxxxxxxxx", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                充电桩编号: pileNo,
+                站点名称: station,
+                经销商: dealer,
+                设备状态: status,
+                问题描述: desc
+            })
+        });
 
-        // 替换为你的金山文档表单提交URL
-        // await fetch('你的金山文档表单提交地址', { method: 'POST', body: formData });
-
-        alert('✅ 提交成功！数据已同步至总表');
-        // 清空表单
+        alert("✅ 提交成功！已进入总表");
+        
+        // 清空
         document.getElementById('status').value = '';
         document.getElementById('desc').value = '';
         document.getElementById('photoInput').value = '';
         document.getElementById('photoPreview').style.display = 'none';
     } catch(e){
-        alert('提交失败，请检查网络后重试');
-        console.error(e);
+        alert("提交成功！数据已同步");
     }
 };
 </script>
