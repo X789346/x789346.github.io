@@ -1,0 +1,740 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>充电桩巡检系统</title>
+    <style>
+        body {
+            padding: 20px;
+            background: #f5f5f5;
+            font-family: "Microsoft Yahei", sans-serif;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-top: 0;
+        }
+        .form-item {
+            margin: 16px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:read-only {
+            background: #f8f9fa;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 17px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        #scanBtn { background: #28a745; }
+        #saveBtn { background: #007bff; }
+        #exportBtn { background: #17a2b8; }
+        #photoBtn { background: #ff9800; }
+        #clearBtn { background: #dc3545; }
+
+        .scan-modal {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center; justify-content: center;
+            z-index: 9999;
+            flex-direction: column;
+        }
+        .scan-modal.show { display: flex; }
+        #scanVideo {
+            width: 80%;
+            max-width: 400px;
+            border: 2px solid #0f0;
+            border-radius: 8px;
+        }
+        .close-scan {
+            position: absolute;
+            top: 30px; right: 30px;
+            color: white;
+            font-size: 30px;
+            background: none;
+            border: none;
+        }
+        .scan-tips {
+            color: white;
+            margin-top: 15px;
+        }
+        #photoPreview {
+            margin-top:10px; display:none;
+        }
+        #previewImg {
+            max-width:100%; border-radius:6px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>充电桩巡检记录</h2>
+
+    <div class="form-item">
+        <button id="scanBtn">扫码识别充电桩</button>
+        <input type="text" id="pileNo" readonly placeholder="充电桩编号">
+    </div>
+
+    <div class="form-item">
+        <label>站点名称</label>
+        <input type="text" id="stationName" readonly placeholder="自动匹配">
+    </div>
+
+    <div class="form-item">
+        <label>设备状态</label>
+        <select id="status">
+            <option value="">请选择</option>
+            <option value="正常">正常</option>
+            <option value="异常">异常</option>
+        </select>
+    </div>
+
+    <div class="form-item">
+        <label>问题描述</label>
+        <input type="text" id="desc" placeholder="无则填无">
+    </div>
+
+    <div class="form-item">
+        <button id="photoBtn">现场拍照/相册选取</button>
+        <input type="file" id="photoInput" accept="image/*" style="display:none;">
+        <div id="photoPreview">
+            <img id="previewImg">
+        </div>
+    </div>
+
+    <button id="saveBtn">保存当前记录</button>
+    <button id="exportBtn">导出全部记录（一个表格）</button>
+    <button id="clearBtn">清空本地所有记录</button>
+</div>
+
+<div class="scan-modal" id="scanModal">
+    <video id="scanVideo" autoplay playsinline muted></video>
+    <button class="close-scan" id="closeScanBtn">×</button>
+    <div class="scan-tips">对准二维码，识别成功自动关闭</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+// ===================== 电桩数据（已去掉经销商）=====================
+const pileData = {
+    "HK6050202312140144": {"station": "百弘帝景"},
+    "WH110W2405A0183": {"station": "(星城新能源)春园商业步行街银街"},
+    "WH110W2405A0242": {"station": "(星城新能源)春园商业步行街银街"},
+    "WH210W2405A0465": {"station": "众一桂府（好润家超市）"},
+    "WH210W2405A0464": {"station": "(五号动力)众一桂府"},
+    "WH210W2405A0461": {"station": "（五号动力）418雅迪"},
+    "WH210W2405A0460": {"station": "(五号动力)松源名都"},
+    "WH210W2405A0459": {"station": "众一桂府（好润家超市）"},
+    "WH210W2405A0458": {"station": "(五号动力)侦查大队"},
+    "WH210W2405A0457": {"station": "(五号动力)娄底汽车站"},
+    "WH210W2405A0456": {"station": "(五号动力)大汉大道老火锅"},
+    "WH210W2405A0455": {"station": "（五号动力）418雅迪"},
+    "WH210W2405A0454": {"station": "(五号动力)涟源市涟水明珠红旗路"},
+    "WH210W2405A0453": {"station": "(五号动力)涟源市交通驾校"},
+    "WH210W2405A0451": {"station": "(五号动力)长青街道办事处"},
+    "WH210W2405A0429": {"station": "(五号动力)安保集团"},
+    "WH210W2405A0428": {"station": "(星城新能源)杉山镇小碧村"},
+    "WH210W2405A0427": {"station": "(五号动力)新世纪建材城29栋"},
+    "WH210W2405A0426": {"station": "(星城新能源)悦江山"},
+    "WH210W2405A0425": {"station": "(五号动力)洪家洲派出所"},
+    "WH210W2405A0424": {"station": "(星城新能源)城西高速口"},
+    "WH210W2405A0422": {"station": "（五号动力）水域中央"},
+    "WH210W2405A0421": {"station": "(五号动力)涟源市农机局"},
+    "WH210W2405A0420": {"station": "(五号动力)吉星南路檀香山"},
+    "WH210W2405A0419": {"station": "(五号动力)安保集团"},
+    "WH210W2405A0417": {"station": "(五号动力)体育馆檀香山"},
+    "WH210W2405A0416": {"station": "(五号动力)环宇学校"},
+    "WH210W2405A0415": {"station": "(五号动力)富冲村"},
+    "WH210W2405A0414": {"station": "(星城新能源)涟钢奶牛山立马店"},
+    "WH210W2405A0413": {"station": "(星城新能源)娄底开放大学"},
+    "WH210W2405A0412": {"station": "(五号动力)涟源市房改局家属楼"},
+    "WH210W2405A0411": {"station": "（五号动力）水域中央"},
+    "WH210W2405A0409": {"station": "(五号动力)涟源市政务中心"},
+    "WH210W2405A0408": {"station": "(五号动力)涟源市涟水明珠红旗路"},
+    "WH210W2405A0407": {"station": "(五号动力)涟源市人民政府当面人行道"},
+    "WH210W2405A0406": {"station": "(五号动力)涟源市芦茅塘社区"},
+    "WH210W2405A0405": {"station": "(星城新能源)悦江山"},
+    "WH210W2405A0404": {"station": "(五号动力)涟源市政务中心"},
+    "WH210W2405A0403": {"station": "(星城新能源)涟钢奶牛山立马店"},
+    "WH210W2405A0402": {"station": "(五号动力)新世纪建材城29栋"},
+    "WH210W2405A0401": {"station": "(五号动力)涟源市民主街路口"},
+    "WH210W2405A0450": {"station": "(星城新能源)大汉大道老火锅"},
+    "WH210W2405A0449": {"station": "(五号动力)长青街道办事处"},
+    "WH210W2405A0448": {"station": "(五号动力)涟源市亿丰国际左侧人行道"},
+    "WH210W2405A0447": {"station": "(五号动力)涟源市财政局"},
+    "WH210W2405A0446": {"station": "(五号动力)众一桂府"},
+    "WH210W2405A0445": {"station": "(五号动力)松源名都"},
+    "WH210W2405A0444": {"station": "(星城新能源)大汉大道老火锅"},
+    "WH210W2405A0443": {"station": "(五号动力)涟源市民主街路口"},
+    "WH210W2405A0442": {"station": "(五号动力)涟源市涟商总部"},
+    "WH210W2405A0441": {"station": "(五号动力)富冲村"},
+    "WH210W2405A0440": {"station": "(五号动力)涟源市交通驾校"},
+    "WH210W2405A0439": {"station": "(五号动力)涟源市芦茅塘社区"},
+    "WH210W2405A0437": {"station": "（五号动力）涟源市长郡润和学校对面"},
+    "WH210W2405A0436": {"station": "(五号动力)侦查大队"},
+    "WH210W2405A0435": {"station": "(五号动力)花山街道卫生服务中心"},
+    "WH210W2405A0434": {"station": "(五号动力)涟源市润泽园"},
+    "WH210W2405A0432": {"station": "(五号动力)楚英学校东门"},
+    "WH210W2405A0431": {"station": "(五号动力)吉星南路檀香山"},
+    "WH210W2405A0430": {"station": "（五号动力）涟源市长郡润和学校对面"},
+    "WH210W2405A0400": {"station": "(五号动力)涟源市人民检察院"},
+    "WH210W2405A0399": {"station": "(五号动力)二大桥绿源电动车"},
+    "WH210W2405A0398": {"station": "(星城新能源)宏泰阳光"},
+    "WH210W2405A0397": {"station": "(五号动力)涟源市牛角社区"},
+    "WH210W2405A0396": {"station": "(五号动力)娄底四中"},
+    "WH210W2405A0395": {"station": "(五号动力)涟源市财政局"},
+    "WH210W2405A0394": {"station": "(五号动力)涟源市涟商总部"},
+    "WH210W2405A0393": {"station": "(星城新能源)宏泰阳光"},
+    "WH210W2405A0392": {"station": "(五号动力)永兴社区"},
+    "WH210W2405A0390": {"station": "(星城新能源)黄泥塘办事处"},
+    "WH210W2405A0389": {"station": "(星城新能源)黄泥塘办事处"},
+    "WH210W2405A0388": {"station": "(五号动力)涟源市牛角社区"},
+    "WH210W2405A0387": {"station": "(五号动力)神童湾大桥"},
+    "WH210W2405A0385": {"station": "(五号动力)娄底四中"},
+    "WH210W2405A0384": {"station": "安徽派享"},
+    "WH210W2405A0383": {"station": "(五号动力)涟源市创安金城"},
+    "WH210W2405A0382": {"station": "(星城新能源)湘中园（13栋）"},
+    "WH210W2405A0380": {"station": "(五号动力)涟源市人民政府当面人行道"},
+    "WH210W2405A0379": {"station": "(五号动力)涟源市润泽园"},
+    "WH210W2405A0378": {"station": "(五号动力)涟源市医疗保障局"},
+    "WH210W2405A0377": {"station": "(星城新能源)湘中园-20栋"},
+    "WH210W2405A0376": {"station": "(五号动力)涟源市亿丰国际左侧人行道"},
+    "WH210W2405A0375": {"station": "(五号动力)二大桥绿源电动车"},
+    "WH210W2405A0374": {"station": "(五号动力)永兴社区"},
+    "WH210W2405A0373": {"station": "(星城新能源)湘中园物业公司"},
+    "WH210W2405A0372": {"station": "(星城新能源)产业园区"},
+    "WH210W2405A0371": {"station": "(五号动力)体育馆檀香山"},
+    "WH210W2405A0370": {"station": "(五号动力)娄底汽车站"},
+    "WH210W2405A0369": {"station": "(五号动力)涟源市人民检察院"},
+    "WH210W2405A0368": {"station": "(五号动力)楚英学校东门"},
+    "WH210W2405A0367": {"station": "(五号动力)神童湾大桥"},
+    "WH210W2405A0366": {"station": "(五号动力)花山街道卫生服务中心"},
+    "WH210W2405A0365": {"station": "(星城新能源)产业园区"},
+    "WH210W2405A0363": {"station": "(五号动力)涟源市创安金城"},
+    "WH210W2405A0362": {"station": "(五号动力)涟源市农机局"},
+    "WH210W2405A0361": {"station": "(星城新能源)湘中园（10栋）"},
+    "WH210W2405A0360": {"station": "(星城新能源)家和新领域"},
+    "WH210W2405A0359": {"station": "(五号动力)涟源市石马山电信"},
+    "WH210W2405A0358": {"station": "(星城新能源)家和新领域"},
+    "WH210W2405A0357": {"station": "(五号动力)涟源市石马山电信"},
+    "WH210W2405A0356": {"station": "(星城新能源)娄底市林业局"},
+    "WH210W2405A0355": {"station": "(五号动力)涟源市医疗保障局"},
+    "WH210W2405A0354": {"station": "(星城新能源)湘中园"},
+    "WH210W2405A0352": {"station": "(五号动力)涟源市人民银行"},
+    "WH210W2405A0351": {"station": "(五号动力)涟源市人民银行"},
+    "WH210W2405A0350": {"station": "(五号动力)涟源市新新社区门口"},
+    "WH210W2405A0349": {"station": "(星城新能源)中国邮政（洪家州营业部-）"},
+    "WH210W2405A0348": {"station": "(星城新能源)大汉龙城芙蓉兴盛"},
+    "WH210W2405A0347": {"station": "(五号动力)涟源市五江购物广场"},
+    "WH210W2405A0346": {"station": "(五号动力)涟源市光明街社区路口"},
+    "WH210W2405A0345": {"station": "(星城新能源)城发星庭"},
+    "WH210W2405A0344": {"station": "(星城新能源)和顺嘉苑"},
+    "WH210W2405A0343": {"station": "(五号动力)涟源市五江君天广场"},
+    "WH210W2405A0342": {"station": "(五号动力)涟源幸福路白马灌区管理局"},
+    "WH210W2405A0340": {"station": "(五号动力)太和学府"},
+    "WH210W2405A0339": {"station": "(五号动力)涟源市湘中煤炭医院"},
+    "WH210W2405A0338": {"station": "(五号动力)涟源市汽车检测中心"},
+    "WH210W2405A0337": {"station": "(五号动力)涟源市五江君天广场"},
+    "WH210W2405A0336": {"station": "(五号动力)涟源市五江购物广场"},
+    "WH210W2405A0335": {"station": "(五号动力)涟源幸福路白马灌区管理局"},
+    "WH210W2405A0334": {"station": "(五号动力)涟源市石马山汽车站"},
+    "WH210W2405A0333": {"station": "(星城新能源)娄星区吉星南路（珠山鑫园）"},
+    "WH210W2405A0332": {"station": "(五号动力)涟源市湘中煤炭医院"},
+    "WH210W2405A0330": {"station": "(五号动力)涟源市五江购物广场"},
+    "WH210W2405A0329": {"station": "(五号动力)涟源市卫计局"},
+    "WH210W2405A0328": {"station": "(星城新能源)碧桂园-翘楚棠"},
+    "WH210W2405A0327": {"station": "(星城新能源)城发星庭"},
+    "WH210W2405A0326": {"station": "(五号动力)涟源市五江君天广场"},
+    "WH210W2405A0325": {"station": "(五号动力)涟源市湘中煤炭医院"},
+    "WH210W2405A0324": {"station": "(五号动力)环宇学校"},
+    "WH210W2405A0323": {"station": "(五号动力)涟源市五江君天广场"},
+    "WH210W2405A0322": {"station": "(星城新能源)金和天下小区(南门)"},
+    "WH210W2405A0321": {"station": "(星城新能源)金和天下小区(南门)"},
+    "WH210W2405A0320": {"station": "(五号动力)太和学府"},
+    "WH210W2405A0319": {"station": "(五号动力)涟源市育才路珊宝超市"},
+    "WH210W2405A0318": {"station": "(星城新能源)金和天下小区(西门)"},
+    "WH210W2405A0317": {"station": "(五号动力)涟源市人力资源和社会保障局"},
+    "WH210W2405A0316": {"station": "(星城新能源)碧桂园-翘楚棠"},
+    "WH210W2405A0315": {"station": "(五号动力)涟源市育才路珊宝超市"},
+    "WH210W2405A0313": {"station": "(星城新能源)碧桂园-翘楚棠"},
+    "WH210W2405A0312": {"station": "(星城新能源)娄底市第一中学"},
+    "WH210W2405A0311": {"station": "(星城新能源)和顺嘉苑"},
+    "WH210W2405A0310": {"station": "(五号动力)涟源市人力资源和社会保障局"},
+    "WH210W2405A0309": {"station": "(五号动力)涟源市人力资源和社会保障局"},
+    "WH210W2405A0308": {"station": "(星城新能源)碧桂园-翘楚棠"},
+    "WH210W2405A0307": {"station": "(星城新能源)和顺嘉苑"},
+    "WH210W2405A0306": {"station": "(五号动力)涟源幸福路白马灌区管理局"},
+    "WH210W2405A0305": {"station": "(五号动力)涟源幸福路白马灌区管理局"},
+    "WH210W2405A0304": {"station": "(星城新能源)中国邮政（洪家州营业部-）"},
+    "WH210W2405A0303": {"station": "(星城新能源)大汉龙城芙蓉兴盛"},
+    "WH210W2405A0302": {"station": "(星城新能源)金和天下小区(西门)"},
+    "WH210W2405A0301": {"station": "(星城新能源)娄底市林业局"},
+    "WH210W2405A0300": {"station": "(五号动力)涟源市五江购物广场"},
+    "WH210W2405A0299": {"station": "(五号动力)涟源市房改局家属楼"},
+    "WH210W2405A0298": {"station": "(星城新能源)城发星庭"},
+    "WH210W2405A0297": {"station": "(五号动力)涟源市人力资源和社会保障局"},
+    "WH210W2405A0296": {"station": "(五号动力)涟源市人民检察院家属楼"},
+    "WH210W2405A0295": {"station": "(星城新能源)大汉龙城芙蓉兴盛"},
+    "WH210W2405A0294": {"station": "(星城新能源)娄底市林业局"},
+    "WH210W2405A0293": {"station": "(星城新能源)大汉龙城芙蓉兴盛"},
+    "WH210W2405A0292": {"station": "(星城新能源)娄星区吉星南路（珠山鑫园）"},
+    "WH210W2405A0291": {"station": "(星城新能源)华达小区(D8栋)"},
+    "WH210W2405A0290": {"station": "(五号动力)涟源市卫计局"},
+    "WH210W2405A0289": {"station": "(五号动力)涟源市育才路珊宝超市"},
+    "WH210W2405A0288": {"station": "(五号动力)涟源市人民检察院家属楼"},
+    "WH210W2405A0287": {"station": "(五号动力)涟源市湘中煤炭医院"},
+    "WH210W2405A0286": {"station": "(星城新能源)高溪综合市场"},
+    "WH210W2405A0285": {"station": "(星城新能源)娄底市第一中学"},
+    "WH210W2405A0284": {"station": "(星城新能源)娄底市林业局"},
+    "WH210W2405A0283": {"station": "(星城新能源)城发星庭"},
+    "WH210W2405A0282": {"station": "(五号动力)长青街春园超市"},
+    "WH210W2405A0281": {"station": "(星城新能源)娄星区吉星南路（珠山鑫园）"},
+    "WH210W2405A0280": {"station": "(星城新能源)娄底市第一中学"},
+    "WH210W2405A0279": {"station": "(星城新能源)高溪综合市场"},
+    "WH210W2405A0278": {"station": "(五号动力)涟源市新新社区门口"},
+    "WH210W2405A0277": {"station": "(五号动力)涟源市汽车检测中心"},
+    "WH210W2405A0276": {"station": "(五号动力)涟源市石马山汽车站"},
+    "WH210W2405A0275": {"station": "(五号动力)涟源市光明街社区路口"},
+    "WH210W2405A0274": {"station": "(星城新能源)和顺嘉苑"},
+    "WH210W2405A0273": {"station": "(五号动力)涟源市光明街社区路口"},
+    "WH210W2405A0272": {"station": "(星城新能源)娄星区吉星南路（珠山鑫园）"},
+    "WH210W2405A0271": {"station": "(五号动力)涟源市光明街社区路口"},
+    "WH210W2405A0270": {"station": "(五号动力)涟源市育才路珊宝超市"},
+    "WH210W2405A0269": {"station": "(星城新能源)高溪综合市场"},
+    "WH210W2405A0268": {"station": "(星城新能源)金和天下小区(西门)"},
+    "WH210W2405A0267": {"station": "(星城新能源)娄底市第一中学"},
+    "WH210W2405A0266": {"station": "(星城新能源)高溪综合市场"},
+    "WH110W2405A0265": {"station": "(星城新能源)涟钢八小"},
+    "WH110W2405A0264": {"station": "(星城新能源)涟滨派出所"},
+    "WH110W2405A0263": {"station": "(星城新能源)娄星区人民政府"},
+    "WH110W2405A0262": {"station": "(星城新能源)涟钢体育馆"},
+    "WH110W2405A0261": {"station": "(星城新能源)御景花园"},
+    "WH110W2405A0260": {"station": "(星城新能源)御景花园"},
+    "WH110W2405A0259": {"station": "(星城新能源)吉泰丽园3栋"},
+    "WH110W2405A0258": {"station": "(星城新能源)神童湾"},
+    "WH110W2405A0257": {"station": "(星城新能源)吉泰丽园14栋"},
+    "WH110W2405A0256": {"station": "(星城新能源)娄星区碧桂园-珺悦府（金星路西）"},
+    "WH110W2405A0255": {"station": "(星城新能源)清泉居委会"},
+    "WH110W2405A0254": {"station": "(星城新能源)第一人民医院"},
+    "WH110W2405A0253": {"station": "(星城新能源)小天使幼儿园"},
+    "WH110W2405A0252": {"station": "(星城新能源)御景花园"},
+    "WH110W2405A0251": {"station": "(星城新能源)桃李苑"},
+    "WH110W2405A0250": {"station": "(星城新能源)牡丹园"},
+    "WH110W2405A0249": {"station": "(星城新能源)政和小区（卓泰虫草）"},
+    "WH110W2405A0248": {"station": "(星城新能源)神童湾"},
+    "WH110W2405A0247": {"station": "(星城新能源)城南壹号三元大市场"},
+    "WH110W2405A0246": {"station": "(星城新能源)牡丹园"},
+    "WH110W2405A0245": {"station": "(星城新能源)新安车行"},
+    "WH110W2405A0244": {"station": "(星城新能源)一大桥"},    
+    "WH110W2405A0243": {"station": "(星城新能源)涟钢体育馆"},
+    "WH110W2405A0241": {"station": "(星城新能源)小花社区（湘中园）"},
+    "WH110W2405A0240": {"station": "(星城新能源)华达小区西单楼"},
+    "WH110W2405A0239": {"station": "(星城新能源)娄星区碧桂园-珺悦府（金星路西）"},
+    "WH110W2405A0238": {"station": "(星城新能源)娄星区人民政府"},
+    "WH110W2405A0237": {"station": "(星城新能源)吉泰丽园3栋"},
+    "WH110W2405A0236": {"station": "(星城新能源)娄底第六小学"},
+    "WH110W2405A0235": {"station": "(星城新能源)吉泰丽园14栋"},
+    "WH110W2405A0234": {"station": "(星城新能源)涟钢体育馆"},
+    "WH110W2405A0233": {"station": "(星城新能源)紫旭名苑"},
+    "WH110W2405A0232": {"station": "(星城新能源)娄底市骨伤医院"},
+    "WH110W2405A0231": {"station": "(五号动力)长青街春园超市"},
+    "WH110W2405A0230": {"station": "(星城新能源)信合家园帝景华庭"},
+    "WH110W2405A0229": {"station": "(五号动力)人文竹山夜市"},
+    "WH110W2405A0228": {"station": "(星城新能源)山海翠园"},
+    "WH110W2405A0227": {"station": "(星城新能源)亿康诊所"},
+    "WH110W2405A0226": {"station": "(星城新能源)信合家园帝景华庭"},
+    "WH110W2405A0225": {"station": "(星城新能源)娄星区碧桂园-珺悦府（金星路西）"},
+    "WH110W2405A0224": {"station": "(星城新能源)鸿润酒店(娄底人文科技学院店)"},
+    "WH110W2405A0223": {"station": "(星城新能源)佳宏小区"},
+    "WH110W2405A0222": {"station": "(星城新能源)紫旭名苑"},
+    "WH110W2405A0221": {"station": "(星城新能源)娄底市骨伤医院"},
+    "WH110W2405A0220": {"station": "(星城新能源)御景花园"},
+    "WH110W2405A0219": {"station": "(星城新能源)紫旭名苑"},
+    "WH110W2405A0218": {"station": "(星城新能源)娄星区碧桂园-珺悦府（金星路西）"},
+    "WH110W2405A0217": {"station": "(星城新能源)观化社区服务中心"},
+    "WH110W2405A0216": {"station": "(星城新能源)政和小区（卓泰虫草）"},
+    "WH110W2405A0214": {"station": "(五号动力)清泉大酒店"},
+    "WH110W2405A0213": {"station": "(星城新能源)公路局"},
+    "WH110W2405A0212": {"station": "(星城新能源)退役军人服务中心"},
+    "WH000W1688A017K": {"station": "(星城新能源)长青社区服务中心"},
+    "WH110W2405A0209": {"station": "(星城新能源)区政府"},
+    "WH110W2405A0208": {"station": "(星城新能源)罗家社区服务中心"},
+    "WH110W2405A0207": {"station": "(星城新能源)富厚名邸（内）"},
+    "WH110W2405A0170": {"station": "(星城新能源)佳宏小区"},
+    "WH110W2405A0205": {"station": "(星城新能源)紫旭名苑"},
+    "WH110W2405A0204": {"station": "(星城新能源)莫淋雨酒店"},
+    "WH110W2405A0203": {"station": "(星城新能源)退役军人服务中心"},
+    "WH110W2405A0202": {"station": "(星城新能源)丹阳社区"},
+    "WH110W2405A0201": {"station": "(星城新能源)供销社"},
+    "WH110W2405A0199": {"station": "(星城新能源)工程公司"},
+    "WH110W2405A0198": {"station": "(星城新能源)百弘学府三期2栋"},
+    "WH110W2405A0197": {"station": "(星城新能源)金湾嘉园"},
+    "WH110W2405A0196": {"station": "(星城新能源)富厚名邸（小区外）"},
+    "WH110W2405A0195": {"station": "(星城新能源)月塘生活小区"},
+    "WH110W2405A0194": {"station": "(星城新能源)大科街道办事处"},
+    "WH110W2405A0193": {"station": "(星城新能源)树鑫城市花园"},
+    "WH110W2405A0192": {"station": "(星城新能源)罗家社区服务中心"},
+    "WH110W2405A0191": {"station": "(星城新能源)金湾嘉园"},
+    "WH110W2405A0190": {"station": "(星城新能源)退役军人服务中心"},
+    "WH110W2405A0189": {"station": "(星城新能源)供销社"},
+    "WH110W2405A0188": {"station": "(星城新能源)井头社区居委会"},
+    "WH110W2405A0187": {"station": "(星城新能源)华达小区(D8栋)"},
+    "WH110W2405A0186": {"station": "(星城新能源)清泉居委会"},
+    "WH110W2405A0185": {"station": "(星城新能源)丹阳社区"},
+    "WH110W2405A0184": {"station": "(星城新能源)长青社区服务中心"},
+    "WH110W2405A0182": {"station": "(星城新能源)区政府"},
+    "WH110W2405A0181": {"station": "(星城新能源)公路局"},
+    "WH110W2405A0206": {"station": "(星城新能源)东山领秀"},
+    "WH110W2405A0178": {"station": "(星城新能源)公路局"},
+    "WH110W2405A0177": {"station": "(星城新能源)百弘学府三期2栋"},
+    "WH110W2405A0175": {"station": "(星城新能源)莫淋雨酒店"},
+    "WH110W2405A0174": {"station": "(星城新能源)区政府"},
+    "WH110W2405A0173": {"station": "(星城新能源)长青社区服务中心"},
+    "WH110W2405A0172": {"station": "(星城新能源)富厚名邸（内）"},
+    "WH110W2405A0171": {"station": "(星城新能源)区政府"},
+    "WH110W2405A0169": {"station": "(星城新能源)长青社区服务中心"},
+    "WH110W2405A0168": {"station": "(星城新能源)华达小区西单楼"},
+    "WH110W2405A0167": {"station": "(星城新能源)城南壹号三元大市场"},
+    "WH110W2405A0166": {"station": "(星城新能源)杉山镇立马店"},
+    "WH110W2405A0165": {"station": "(星城新能源)娄星区公安局"},
+    "WH110W2405A0164": {"station": "(五号动力)清泉大酒店"},
+    "WH110W2405A0163": {"station": "(星城新能源)区政府"},
+    "WH110W2405A0162": {"station": "(星城新能源)华达小区44栋"},
+    "WH110W2405A0161": {"station": "(星城新能源)丹阳社区"},
+    "WH110W2405A0160": {"station": "(星城新能源)工程公司"},
+    "WH110W2405A0159": {"station": "(星城新能源)区政府"},
+    "WH110W2405A0158": {"station": "(星城新能源)罗家社区服务中心"},
+    "WH110W2405A0157": {"station": "(星城新能源)公路局"},
+    "WH110W2405A0156": {"station": "(星城新能源)罗家社区服务中心"},
+    "WH110W2405A0155": {"station": "(星城新能源)富厚名邸（内）"},
+    "WH110W2405A0154": {"station": "(星城新能源)华达小区西单楼"},
+    "WH110W2405A0153": {"station": "(星城新能源)树鑫城市花园"},
+    "WH110W2405A0152": {"station": "(星城新能源)退役军人服务中心"},
+    "WH110W2405A0151": {"station": "(星城新能源)娄星区公安局"},
+    "HK6050202312140137": {"station": "(嘟家(民营市场))申通娄星总部站点"},
+    "HK6050202312140138": {"station": "(嘟家(民营市场))申通娄星总部站点"},
+    "HK6050202312140147": {"station": "(五号快充)乔戈摩托"},
+    "HK6050202312140148": {"station": "(五号动力)家福地产（东方豪苑店）"},
+    "HK6050202312140140": {"station": "(嘟家(民营市场))嘟家娄星区总店"},
+    "HK6050202312140142": {"station": "(五号快充)一闻香迷宗蟹(三中斜对面）"},
+    "HK6050202312140146": {"station": "(五号动力)家福地产(湘中园店)"},
+    "HK6050202306090014": {"station": "(嘟家(民营市场))天能电池"},
+    "HK6050202308280134": {"station": "(五号快充)娄星区新星南路(珠山正和园)"},
+    "HK6050202308280133": {"station": "(五号快充)铂金玫瑰园西南"},
+    "HK6050202308280132": {"station": "(五号快充)老科协医院"},
+    "HK6050202308280131": {"station": "(五号快充)清泉大酒店"},
+    "HK6050202308280130": {"station": "(五号快充)娄底技师学院家属区"},
+    "HK6050202308280129": {"station": "(五号快充)竹山社区居委会"},
+    "WH000W1688A003K": {"station": "(五号快充)龙泉花园雅迪"},
+    "HK6050202308280127": {"station": "(五号快充)鸿润酒店(娄底人文科技学院店)"},
+    "HK6050202308280126": {"station": "(五号快充)立马电动车(茶园农贸市场)"},
+    "HK6050202308280125": {"station": "(五号快充)洞新居委会"},
+    "HK6050202308280124": {"station": "(五号快充)娄底市乡镇企业局"},
+    "HK6050202308280123": {"station": "(五号快充)涟钢八小"},
+    "HK6050202308280122": {"station": "(五号快充)娄底二中"},
+    "HK6050202308280121": {"station": "(五号快充)娄底二中"},
+    "HK6050202308280120": {"station": "(五号快充)关家脑农商银行"},
+    "HK6050202308280119": {"station": "(五号快充)华湘贵府"},
+    "WH110W2405A0215": {"station": "(星城新能源)贤童街"},
+    "HK6050202308280117": {"station": "(五号快充)老科协医院"},
+    "HK6050202308280116": {"station": "(五号快充)涟滨派出所"},
+    "HK6050202308280115": {"station": "(五号快充)蓝圃学校"},
+    "HK6050202308280114": {"station": "(五号快充)长春社区居委会"},
+    "HK6050202308280113": {"station": "(五号快充)涟钢体育馆"},
+    "HK6050202308280112": {"station": "(五号快充)蜜蜂社区居委会"},
+    "HK6050202308280111": {"station": "(五号快充)铂金玫瑰园西南"},
+    "HK6050202308280110": {"station": "(五号快充)娄星区新星南路(珠山正和园)"},
+    "HK6050202308280109": {"station": "(五号快充)长春社区居委会"},
+    "HK6050202308280108": {"station": "(五号快充)富士国际酒店"},
+    "HK6050202308280107": {"station": "(五号快充)百花超市"},
+    "HK6050202308280106": {"station": "(五号快充)娄星区新立社区居委会"},
+    "HK6050202308280105": {"station": "(五号快充)娄底第四小学"},
+    "HK6050202308280104": {"station": "(五号快充)贤童街"},
+    "HK6050202308280102": {"station": "(五号快充)娄星信访局"},
+    "HK6050202308280101": {"station": "(五号快充)莫淋雨酒店(氐星路)"},
+    "HK6050202308280100": {"station": "(五号快充)娄星区新立社区居委会"},
+    "HK6050202308280098": {"station": "(五号快充)大汉大道火锅店"},
+    "HK6050202308280097": {"station": "(五号快充)亿康诊所"},
+    "HK6050202308280096": {"station": "(五号快充)娄星信访局"},
+    "HK6050202308280095": {"station": "(五号快充)观化社区服务中心"},
+    "HK6050202308280094": {"station": "(五号快充)贤童社区(军分区对面农业局)"},
+    "HK6050202308280093": {"station": "(五号快充)桃李苑"},
+    "HK6050202308280092": {"station": "(五号快充)大汉大道精品建材城1栋"},
+    "HK6050202308280091": {"station": "(五号快充)四六八医院"},
+    "HK6050202308280090": {"station": "(五号快充)418粮运市场"},
+    "HK6050202308280089": {"station": "(五号快充)颜师傅车行"},
+    "HK6050202308280088": {"station": "(五号快充)新安车行"},
+    "HK6050202308280087": {"station": "(五号快充)职业技术学院"},
+    "HK6050202308280086": {"station": "(五号快充)世纪花城"},
+    "HK6050202308280085": {"station": "(五号快充)秀石街"},
+    "HK6050202308280084": {"station": "(五号快充)贤童社区(军分区对面农业局)"},
+    "HK6050202308280083": {"station": "(五号快充)王记车行"},
+    "HK6050202308280081": {"station": "(五号快充)大汉大道精品建材城1栋"},
+    "HK6050202308280080": {"station": "(五号快充)广成大厦"},
+    "HK6050202308280079": {"station": "(五号快充)涟钢职业技术"},
+    "HK6050202308280078": {"station": "(五号快充)金谷社区居委会"},
+    "HK6050202308280077": {"station": "(五号快充)广成大厦"},
+    "HK6050202308280076": {"station": "(五号快充)湘运职业技术培训学校"},
+    "HK6050202308280075": {"station": "(五号快充)娄底开放大学"},
+    "HK6050202308280073": {"station": "(五号快充)长青派出所"},
+    "HK6050202308280072": {"station": "(五号快充)金谷社区居委会"},
+    "HK6050202308280071": {"station": "(五号快充)莫淋雨酒店(氐星路)"},
+    "HK6050202308280070": {"station": "(五号快充)涟钢奶牛山小区(钢城东路)"},
+    "HK6050202308280069": {"station": "(五号快充)月塘生活小区"},
+    "HK6050202308280068": {"station": "(五号快充)丹阳社区"},
+    "HK6050202308280067": {"station": "(五号快充)418粮运市场"},
+    "HK6050202308280066": {"station": "(五号快充)过得硬门窗"},
+    "WH000W1688A002K": {"station": "(五号快充)龙泉花园雅迪"},
+    "HK6050202308280064": {"station": "(五号快充)百亩村委"},
+    "HK6050202308280063": {"station": "(五号快充)仙人阁小区"},
+    "HK6050202312140141": {"station": "(五号快充)娄底职业技术学院"},
+    "HK6050202308280061": {"station": "(五号快充)农资大厦"},
+    "HK6050202308280060": {"station": "(五号快充)小科社区居委会"},
+    "HK6050202308280059": {"station": "(五号快充)蜜蜂社区居委会"},
+    "HK6050202306090003": {"station": "(五号快充)长青派出所"},
+    "HK6050202308280057": {"station": "(五号快充)一大桥"},
+    "HK6050202308280056": {"station": "(五号快充)龙庭贵筑B栋西南建设街"},
+    "HK6050202308280082": {"station": "(五号快充)山海翠园"},
+    "HK6050202308280054": {"station": "(五号快充)关家脑农商银行"},
+    "HK6050202308280053": {"station": "(五号快充)清泉大酒店"},
+    "HK6050202308280052": {"station": "(五号快充)华泰大酒店"},
+    "HK6050202308280051": {"station": "(五号快充)华湘贵府"},
+    "HK6050202308280050": {"station": "(五号快充)华泰大酒店"},
+    "HK6050202308280049": {"station": "(五号快充)幸福超市"},
+    "HK6050202308280048": {"station": "(五号快充)井头社区居委会"},
+    "HK6050202308280047": {"station": "(五号动力)人文竹山夜市"},
+    "HK6050202308280046": {"station": "(五号快充)娄底技师学院家属区"},
+    "HK6050202308280045": {"station": "(五号快充)竹山社区居委会"},
+    "HK6050202308280044": {"station": "(五号快充)洪家洲派出所"},
+    "HK6050202308280043": {"station": "(五号快充)娄底第六小学"},
+    "HK6050202308280042": {"station": "(五号快充)娄底职业技术学院"},
+    "HK6050202308280041": {"station": "(五号快充)小科社区居委会"},
+    "HK6050202308280040": {"station": "(五号快充)龙庭贵筑B栋西南建设街"},
+    "HK6050202308280039": {"station": "(五号快充)农资大厦"},
+    "HK6050202308280038": {"station": "(五号快充)娄底建设工程（华达红绿灯路口）"},
+    "HK6050202308280037": {"station": "(五号快充)立马电动车(娄星南路店)"},
+    "HK6050202308280036": {"station": "(五号快充)娄底市乡镇企业局"},
+    "HK6050202308280035": {"station": "(五号快充)娄底建设工程（华达红绿灯路口）"},
+    "HK6050202308280034": {"station": "(五号快充)小天使幼儿园"},
+    "HK6050202308280074": {"station": "(五号快充)第一人民医院"},
+    "HK6050202308090033": {"station": "辉林智谷中心"},
+    "HK6050202306090031": {"station": "(五号动力)家福地产(月塘街店)石马公园对面"},
+    "HK6050202306090030": {"station": "辉林智谷中心"},
+    "WH210W2405A0341": {"station": "(星城新能源)金和天下小区(西门)"},
+    "HK6050202306090022": {"station": "(嘟家(民营市场))嘟家娄星区总店"},
+    "HK6050202306090020": {"station": "(嘟家(民营市场))圆通速递(娄底总部)"},
+    "WH110W2405A0180": {"station": "(星城新能源)东山领秀"},
+    "WH000W1688A020K": {"station": "(嘟家(民营市场))立马电动车(民营店)"},
+    "HK6050202306090013": {"station": "(五号动力)家福地产(青春里店)"},
+    "HK6050202306090012": {"station": "(嘟家(民营市场))嘟家娄星区总店"},
+    "HK6050202306090007": {"station": "(嘟家(民营市场))立马电动车(长青街店)"},
+    "HK6050202306090006": {"station": "(嘟家(民营市场))立马电动车（湘阳街-体育馆）"},
+    "HK6050202306090005": {"station": "(嘟家(民营市场))立马电动车(涟钢旗舰店)"},
+    "HK6050202306090001": {"station": "(嘟家(民营市场))七星豹电动车城"}
+};
+
+// ===================== 本地存储逻辑 =====================
+function getRecords() {
+    try {
+        const data = localStorage.getItem('charge_records');
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveRecord(record) {
+    const records = getRecords();
+    records.push(record);
+    localStorage.setItem('charge_records', JSON.stringify(records));
+}
+
+function clearAllRecords() {
+    localStorage.removeItem('charge_records');
+}
+
+// ===================== 拍照功能 =====================
+document.getElementById('photoBtn').onclick = function(){
+    document.getElementById('photoInput').click();
+};
+document.getElementById('photoInput').onchange = function(e){
+    const file = e.target.files[0];
+    if(file){
+        const reader = new FileReader();
+        reader.onload = function(ev){
+            document.getElementById('previewImg').src = ev.target.result;
+            document.getElementById('photoPreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+// ===================== 扫码核心逻辑（精准提取编号）=====================
+let mediaStream = null;
+document.getElementById('scanBtn').onclick = async function(){
+    document.getElementById('scanModal').classList.add('show');
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' } // 强制调用后置摄像头
+        });
+        const video = document.getElementById('scanVideo');
+        video.srcObject = mediaStream;
+        await video.play();
+        startScan();
+    } catch(e) {
+        alert('请允许相机权限，或在手机浏览器中打开使用');
+        closeScan();
+    }
+};
+
+function closeScan(){
+    document.getElementById('scanModal').classList.remove('show');
+    if(mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
+}
+document.getElementById('closeScanBtn').onclick = closeScan;
+
+// 核心：精准提取 WH/HK 开头的12-16位编号（匹配你的格式）
+function extractPileNo(rawStr) {
+    // 正则规则：以WH或HK开头，后面跟数字/字母，长度12-16位（覆盖你所有编号格式）
+    const reg = /(WH|HK)[0-9A-Z]{10,14}/;
+    const match = rawStr.match(reg);
+    return match ? match[0] : '';
+}
+
+function startScan(){
+    const video = document.getElementById('scanVideo');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const scanInterval = setInterval(() => {
+        if(!mediaStream) {
+            clearInterval(scanInterval);
+            return;
+        }
+        
+        if(video.readyState === video.HAVE_ENOUGH_DATA){
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // 识别二维码内容
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const codeResult = jsQR(imageData.data, canvas.width, canvas.height);
+            
+            if(codeResult) {
+                clearInterval(scanInterval); // 停止扫描
+                const rawData = codeResult.data || '';
+                const pileNo = extractPileNo(rawData); // 精准提取编号
+                
+                if(pileNo) {
+                    // 匹配站点信息
+                    if(pileData[pileNo]) {
+                        document.getElementById('pileNo').value = pileNo;
+                        document.getElementById('stationName').value = pileData[pileNo].station;
+                        alert(`识别成功！\n编号：${pileNo}\n站点：${pileData[pileNo].station}`);
+                    } else {
+                        document.getElementById('pileNo').value = pileNo;
+                        document.getElementById('stationName').value = '未匹配到站点';
+                        alert(`识别到编号：${pileNo}\n未找到对应站点信息`);
+                    }
+                } else {
+                    alert('未识别到有效充电桩编号！');
+                }
+                closeScan();
+            }
+        }
+    }, 300); // 每300ms扫描一次，提升识别效率
+}
+
+// ===================== 保存/导出/清空 =====================
+document.getElementById('saveBtn').onclick = function(){
+    const pileNo = document.getElementById('pileNo').value.trim();
+    const station = document.getElementById('stationName').value.trim();
+    const status = document.getElementById('status').value.trim();
+    const desc = document.getElementById('desc').value.trim() || '无';
+    const time = new Date().toLocaleString('zh-CN');
+
+    if(!pileNo) {
+        alert('请先扫码获取充电桩编号！');
+        return;
+    }
+    if(!status) {
+        alert('请选择设备状态！');
+        return;
+    }
+
+    saveRecord({ pileNo, station, status, desc, time });
+    alert('✅ 保存成功！已汇总到本地');
+    
+    // 清空表单（保留编号和站点，方便连续录入）
+    document.getElementById('status').value = '';
+    document.getElementById('desc').value = '';
+    document.getElementById('photoInput').value = '';
+    document.getElementById('photoPreview').style.display = 'none';
+};
+
+document.getElementById('exportBtn').onclick = function(){
+    const records = getRecords();
+    if(records.length === 0){
+        alert('暂无巡检记录可导出！');
+        return;
+    }
+
+    // 生成CSV文件（UTF-8编码，兼容Excel）
+    const csvHeader = '充电桩编号,站点名称,设备状态,问题描述,记录时间\n';
+    const csvRows = records.map(record => {
+        return `${record.pileNo},${record.station},${record.status},${record.desc},${record.time}`;
+    }).join('\n');
+    const csvContent = '\ufeff' + csvHeader + csvRows; // \ufeff 解决中文乱码
+
+    // 下载文件
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `充电桩巡检记录_${new Date().toLocaleDateString()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    alert('✅ 导出成功！文件可直接用Excel/WPS打开');
+};
+
+document.getElementById('clearBtn').onclick = function(){
+    if(confirm('⚠️ 确定要清空所有本地记录吗？此操作不可恢复！')){
+        clearAllRecords();
+        alert('✅ 已清空所有本地巡检记录');
+    }
+};
+</script>
+</body>
+</html>
