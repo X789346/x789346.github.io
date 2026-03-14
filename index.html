@@ -142,6 +142,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
+// ===================== 电桩数据（已去掉经销商）=====================
 const pileData = {
 "HK6050202312140144":{"station":"百弘帝景"},
 "WH110W2405A0183":{"station":"(星城新能源)春园商业步行街银街"},
@@ -246,6 +247,7 @@ const pileData = {
 "WH110W2405A0185":{"station":"(星城新能源)春园商业步行街银街"}
 };
 
+// ===================== 本地存储逻辑 =====================
 function getRecords() {
     try {
         const data = localStorage.getItem('charge_records');
@@ -265,6 +267,7 @@ function clearAllRecords() {
     localStorage.removeItem('charge_records');
 }
 
+// ===================== 拍照功能 =====================
 document.getElementById('photoBtn').onclick = function(){
     document.getElementById('photoInput').click();
 };
@@ -280,62 +283,87 @@ document.getElementById('photoInput').onchange = function(e){
     }
 };
 
+// ===================== 扫码核心逻辑（精准提取编号）=====================
 let mediaStream = null;
 document.getElementById('scanBtn').onclick = async function(){
     document.getElementById('scanModal').classList.add('show');
     try {
         mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' }
+            video: { facingMode: 'environment' } // 强制调用后置摄像头
         });
         const video = document.getElementById('scanVideo');
         video.srcObject = mediaStream;
+        await video.play();
         startScan();
     } catch(e) {
-        alert('请允许相机权限');
+        alert('请允许相机权限，或在手机浏览器中打开使用');
         closeScan();
     }
 };
 
 function closeScan(){
     document.getElementById('scanModal').classList.remove('show');
-    if(mediaStream) mediaStream.getTracks().forEach(t=>t.stop());
+    if(mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
 }
 document.getElementById('closeScanBtn').onclick = closeScan;
+
+// 核心：精准提取 WH/HK 开头的12-16位编号（匹配你的格式）
+function extractPileNo(rawStr) {
+    // 正则规则：以WH或HK开头，后面跟数字/字母，长度12-16位（覆盖你所有编号格式）
+    const reg = /(WH|HK)[0-9A-Z]{10,14}/;
+    const match = rawStr.match(reg);
+    return match ? match[0] : '';
+}
 
 function startScan(){
     const video = document.getElementById('scanVideo');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    function loop(){
+    
+    const scanInterval = setInterval(() => {
+        if(!mediaStream) {
+            clearInterval(scanInterval);
+            return;
+        }
+        
         if(video.readyState === video.HAVE_ENOUGH_DATA){
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            ctx.drawImage(video,0,0);
-            const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-            if(code){
-                let rawData = code.data.trim();
-                // 自动提取网址中的 WH/HK 开头编号
-                let match = rawData.match(/(WH|HK)\w+/);
-                let pileNo = match ? match[0] : rawData;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // 识别二维码内容
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const codeResult = jsQR(imageData.data, canvas.width, canvas.height);
+            
+            if(codeResult) {
+                clearInterval(scanInterval); // 停止扫描
+                const rawData = codeResult.data || '';
+                const pileNo = extractPileNo(rawData); // 精准提取编号
                 
-                if(pileData[pileNo]){
-                    document.getElementById('pileNo').value = pileNo;
-                    document.getElementById('stationName').value = pileData[pileNo].station;
-                    alert('识别成功：'+pileNo);
+                if(pileNo) {
+                    // 匹配站点信息
+                    if(pileData[pileNo]) {
+                        document.getElementById('pileNo').value = pileNo;
+                        document.getElementById('stationName').value = pileData[pileNo].station;
+                        alert(`识别成功！\n编号：${pileNo}\n站点：${pileData[pileNo].station}`);
+                    } else {
+                        document.getElementById('pileNo').value = pileNo;
+                        document.getElementById('stationName').value = '未匹配到站点';
+                        alert(`识别到编号：${pileNo}\n未找到对应站点信息`);
+                    }
                 } else {
-                    document.getElementById('pileNo').value = pileNo;
-                    document.getElementById('stationName').value = '未匹配到站点';
-                    alert('未找到此桩：'+pileNo);
+                    alert('未识别到有效充电桩编号！');
                 }
                 closeScan();
-                return;
             }
         }
-        requestAnimationFrame(loop);
-    }
-    loop();
+    }, 300); // 每300ms扫描一次，提升识别效率
 }
 
+// ===================== 保存/导出/清空 =====================
 document.getElementById('saveBtn').onclick = function(){
     const pileNo = document.getElementById('pileNo').value.trim();
     const station = document.getElementById('stationName').value.trim();
@@ -343,14 +371,19 @@ document.getElementById('saveBtn').onclick = function(){
     const desc = document.getElementById('desc').value.trim() || '无';
     const time = new Date().toLocaleString('zh-CN');
 
-    if(!pileNo || !status){
-        alert('请扫码并选择状态');
+    if(!pileNo) {
+        alert('请先扫码获取充电桩编号！');
+        return;
+    }
+    if(!status) {
+        alert('请选择设备状态！');
         return;
     }
 
     saveRecord({ pileNo, station, status, desc, time });
     alert('✅ 保存成功！已汇总到本地');
     
+    // 清空表单（保留编号和站点，方便连续录入）
     document.getElementById('status').value = '';
     document.getElementById('desc').value = '';
     document.getElementById('photoInput').value = '';
@@ -360,28 +393,33 @@ document.getElementById('saveBtn').onclick = function(){
 document.getElementById('exportBtn').onclick = function(){
     const records = getRecords();
     if(records.length === 0){
-        alert('暂无记录');
+        alert('暂无巡检记录可导出！');
         return;
     }
 
-    const head = '充电桩编号,站点名称,设备状态,问题描述,记录时间\n';
-    const rows = records.map(r => `${r.pileNo},${r.station},${r.status},${r.desc},${r.time}`).join('\n');
-    const csv = '\ufeff' + head + rows;
+    // 生成CSV文件（UTF-8编码，兼容Excel）
+    const csvHeader = '充电桩编号,站点名称,设备状态,问题描述,记录时间\n';
+    const csvRows = records.map(record => {
+        return `${record.pileNo},${record.station},${record.status},${record.desc},${record.time}`;
+    }).join('\n');
+    const csvContent = '\ufeff' + csvHeader + csvRows; // \ufeff 解决中文乱码
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    // 下载文件
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = '充电桩巡检全部记录.csv';
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `充电桩巡检记录_${new Date().toLocaleDateString()}.csv`;
+    link.click();
     URL.revokeObjectURL(url);
-    alert('✅ 导出成功！只有一个文件，用WPS打开');
+    
+    alert('✅ 导出成功！文件可直接用Excel/WPS打开');
 };
 
 document.getElementById('clearBtn').onclick = function(){
-    if(confirm('确定清空所有记录？')){
+    if(confirm('⚠️ 确定要清空所有本地记录吗？此操作不可恢复！')){
         clearAllRecords();
-        alert('✅ 已清空');
+        alert('✅ 已清空所有本地巡检记录');
     }
 };
 </script>
